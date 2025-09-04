@@ -1,0 +1,155 @@
+[
+    {
+        "id": "pim",
+        "caption": "Gestión de Información Personal",
+        "help": "Variables del paquete: pim",
+        "vars": [
+            {
+                "varname": "pim_calendar_breaks",
+                "vardefault": "",
+                "varvalue": "14:00-14:30",
+                "varcaption": "Recesos",
+                "varhelp": "Lista de recesos: HH:mm-HH:mm,... (horas y minutos de inicio y fin del descanso).",
+                "vartype": "string",
+                "varinput": { "control": "text" }
+            },
+            {
+                "varname": "pim_calendar_weekend",
+                "vardefault": "",
+                "varvalue": "saturday,sunday",
+                "varcaption": "Días de descanso",
+                "varhelp": "Lista de días no laborales separadas por coma",
+                "vartype": "string",
+                "varinput": { "control": "text" }
+            },
+            {
+                "varname": "pim_calendar_holidays",
+                "vardefault": "",
+                "varvalue": "01-01,12-25",
+                "varcaption": "Fechas no laborales",
+                "varhelp": "Días de descanso: MM-dd,... (mes y día a dos dígitos)",
+                "vartype": "string",
+                "varinput": { "control": "textarea" }
+            },
+            {
+                "varname": "pim_calendar_start_weekday",
+                "vardefault": "",
+                "varvalue": "sunday",
+                "varcaption": "Día de inicio",
+                "varhelp": "Indica el día en que inicia la semana.",
+                "vartype": "string",
+                "varinput": {
+                    "control": "select",
+                    "source": {
+                        "type":"list",
+                        "keyfield":"id",
+                        "showfield":"const",
+                        "values":[
+                            { "id":"sunday", "const":"Domingo" },
+                            { "id":"monday", "const":"Lunes" },
+                            { "id":"tuesday", "const":"Martes" },
+                            { "id":"wednesday", "const":"Miércoles" },
+                            { "id":"thursday", "const":"Jueves" },
+                            { "id":"friday", "const":"Viernes" },
+                            { "id":"saturday", "const":"Sábado" }
+                        ]
+                    }
+                }
+            },
+            {
+                "varname": "pim_calendar_start_lab_hour",
+                "vardefault": "",
+                "varvalue": "9",
+                "varcaption": "Hora inicio",
+                "varhelp": "Hora de inicio laboral.",
+                "vartype": "int",
+                "varinput": { "control": "number" }
+            },
+            {
+                "varname": "pim_calendar_end_lab_hour",
+                "vardefault": "",
+                "varvalue": "18",
+                "varcaption": "Hora final",
+                "varhelp": "Hora de finalización laboral.",
+                "vartype": "int",
+                "varinput": { "control": "number" }
+            },
+            {
+                "varname": "pim_calendar_interval",
+                "vardefault": "",
+                "varvalue": "30",
+                "varcaption": "Intervalo",
+                "varhelp": "Minutos en los que el horario laboral es segmentado.",
+                "vartype": "int",
+                "varinput": {
+                    "control": "select",
+                    "source": {
+                        "type":"list",
+                        "keyfield":"id",
+                        "showfield":"const",
+                        "values":[
+                            { "id":"15", "const":"15 min" },
+                            { "id":"30", "const":"30 min" },
+                            { "id":"60", "const":"1 hrs" },
+                            { "id":"120", "const":"2 hrs" }
+                        ]
+                    }
+                }
+            },
+            {
+                "varname": "pim_events_min_duration",
+                "vardefault": "",
+                "varvalue": "30",
+                "varcaption": "Duración mínima",
+                "varhelp": "Duración mínima en minutos para los eventos.",
+                "vartype": "int",
+                "varinput": { "control": "number" }
+            },
+            {
+                "varname": "pim_events_max_duration",
+                "vardefault": "",
+                "varvalue": "60",
+                "varcaption": "Duración máxima",
+                "varhelp": "Duración máxima en minutos para los eventos.",
+                "vartype": "int",
+                "varinput": { "control": "number" }
+            },
+            {
+                "varname": "pim_events_important_backcolor",
+                "vardefault": "",
+                "varvalue": "#E0F5FF",
+                "varcaption": "",
+                "varhelp": "",
+                "vartype": "string",
+                "varinput": { "control": "hexcolor" }
+            },
+            {
+                "varname": "pim_events_pending_backcolor",
+                "vardefault": "",
+                "varvalue": "#FFFFE1",
+                "varcaption": "",
+                "varhelp": "",
+                "vartype": "string",
+                "varinput": { "control": "hexcolor" }
+            },
+            {
+                "varname": "pim_events_done_backcolor",
+                "vardefault": "",
+                "varvalue": "#E0FFE1",
+                "varcaption": "",
+                "varhelp": "",
+                "vartype": "string",
+                "varinput": { "control": "hexcolor" }
+            },
+            {
+                "varname": "pim_events_canceled_backcolor",
+                "vardefault": "",
+                "varvalue": "#FFE0E1",
+                "varcaption": "",
+                "varhelp": "",
+                "vartype": "string",
+                "varinput": { "control": "hexcolor" }
+            }
+        ]
+    }
+]

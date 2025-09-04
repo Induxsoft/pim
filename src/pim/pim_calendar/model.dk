@@ -1,0 +1,262 @@
+#include "dkli.dkh"
+#!
+module ":calendar"
+{
+    @table_name = "pim_calendar"
+    @keyfield = "sys_pk"
+    @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user"
+
+    @list_query = "SELECT * FROM #<@table_name> WHERE NOT IFNULL(sys_deleted,0) LIMIT #<@default_max_rows>"
+    @read_query = "SELECT * FROM #<@table_name> WHERE #<@keyfield> = @_entity_id LIMIT 1"
+
+    function searchUsers(&db,&params)
+    {
+        sql = "SELECT sys_pk pk, sys_guid guid, userid id, username name FROM tuser WHERE "
+        if field.exist(params,"key")
+        {
+            sql = sql + "userid = @key OR sys_guid = @key OR sys_pk = CAST(@key AS DECIMAL)"
+            return dbr.rec(db,sql,params)
+        }
+
+        sql = sql + "NOT IFNULL(sys_deleted,0) AND NOT IFNULL(locked,0) AND (userid=@search OR username LIKE CONCAT('%',@search,'%'))"
+        return dbr.list(db,sql,params)
+    }
+
+    function searchGroups(&db,&params)
+    {
+        sql = "SELECT sys_pk pk, sys_guid guid, groupid id, description name FROM usergroup WHERE "
+        if field.exist(params,"key")
+        {
+            sql = sql + "groupid = @key OR sys_guid = @key OR sys_pk = CAST(@key AS DECIMAL)"
+            return dbr.rec(db,sql,params)
+        }
+
+        sql = sql + "NOT IFNULL(sys_deleted,0) AND (groupid=@search OR description LIKE CONCAT('%',@search,'%'))"
+        return dbr.list(db,sql,params)
+    }
+
+    function getOwner(&db,sys_pk)
+    {
+        new p { @"key": sys_pk }
+        if sys_pk < 1 { p.key := @@(@http_context,"$session/user/uid") }
+
+        return searchUsers(db,p)
+    }
+    
+    //#region prepareView()
+    function prepareView(&db,&params,&data)
+    {
+        is_new = (@@(params,"$_entity_id") == "_new")
+        propietario = 0
+        
+        if field.exist(data,"form")
+        {
+            propietario = @@(data,"#form/propietario")
+        }
+        else if field.exist(data,"entity")
+        {
+            propietario = @@(data,"#entity/propietario")
+        }
+
+        data<"propietario*"> : getOwner(db,propietario)
+    }
+
+    //#region validateFields()
+    function validateFields(&data)
+    {
+        //code here...
+    }
+
+    //#region list()
+    function list(&db,&params)
+    {
+        // do dbr.apps.action.grant("TF10")
+
+        new data
+        {
+            @"data*": list.create() //entity.list(db,params)
+            @"itemactions*": dbr.apps.itemactions(db,"DET098","action","",0)
+            @"itemreports*": dbr.apps.itemactions(db,"DET098","report","",0)
+        }
+
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region read()
+    function read(&db,&params)
+    {
+        // do dbr.apps.action.grant("TF10")
+
+        if not(isset("@just_read_entity")) { @just_read_entity = @false }
+        if @just_read_entity { return entity.read(db,params) }
+
+        new data { @"entity*": entity.read(db,params) }
+        do prepareView(db,params,data)
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region blank()
+    function blank(&db,&params)
+    {
+        // do dbr.apps.action.grant("TF10")
+
+        new data
+        {
+            member "entity"
+            {
+                @"breaks": dbr.vars.get(db,"pim_calendar_breaks")
+                @"weekend": dbr.vars.get(db,"pim_calendar_weekend")
+                @"holidays": dbr.vars.get(db,"pim_calendar_holidays")
+                @"start_weekday": dbr.vars.get(db,"pim_calendar_start_weekday")
+                @"start_lab_hour": dbr.vars.get(db,"pim_calendar_start_lab_hour")
+                @"end_lab_hour": dbr.vars.get(db,"pim_calendar_end_lab_hour")
+                @"interval": dbr.vars.get(db,"pim_calendar_interval")
+                @"min_duration": dbr.vars.get(db,"pim_events_min_duration")
+                @"max_duration": dbr.vars.get(db,"pim_events_max_duration")
+            }
+        }
+        do prepareView(db,params,data)
+
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region create()
+    function create(&db,&params,&data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+        
+        do dbr.apps.action.pre("TF11")
+        do dbr.begin(db)
+
+        do validateFields(data)
+        ref entity = entity.create(db,params,data)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        @url_redir = replace(@pim_calendar_see,"@_entity_id",@@(entity,@keyfield))
+
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region update()
+    function update(&db,&params,&data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+        
+        do dbr.apps.action.pre("TF12")
+        do dbr.begin(db)
+
+        do validateFields(data)
+        ref entity = entity.update(db,params,data)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        @url_redir = replace(@pim_calendar_see,"@_entity_id",@@(entity,@keyfield))
+
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region delete()
+    function delete(&db,&params)
+    {
+        @use_transaction = @false
+        
+        do dbr.apps.action.pre("TF13")
+
+        ref entity = @null
+        deleted = @false
+
+        codeblock "Intentar eliminación física"
+        {
+            do dbr.begin(db)
+
+            do dbr.delete(db,"pim_calendar_per","calendar=@_entity_id",params)
+            do dbr.delete(db,"pim_events","calendar=@_entity_id",params)
+            do entity.delete(db,params)
+
+            do dbr.apps.action.pos(entity)
+            do dbr.commit(db)
+            deleted = @true
+            do dbr.apps.action.ext(entity)
+            
+            exception
+            {
+                if dbr.in_transaction(db) { do dbr.rollback(db) }
+                do dbr.apps.action.log()
+                do pop_exception()
+            }
+        }
+        if not(deleted)
+        {
+            do dbr.begin(db)
+
+            lastuser = @@(@http_context,"$session/user/uid")
+            sql = ftext("
+            UPDATE #<@table_name> SET
+                sys_timestamp = NOW(),
+                sys_lastuser = #<lastuser>,
+                sys_deleted = 1,
+                sys_info = nombre,
+                nombre = CONCAT('~',sys_pk)
+            WHERE #<@keyfield> = @_entity_id
+            ")
+            do dbr.execute(db,sql,params)
+            ref entity:entity.read(db,params)
+
+            do dbr.apps.action.pos(entity)
+            do dbr.commit(db)
+            do dbr.apps.action.ext(entity)
+        }
+
+        return entity
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region catch()
+    function catch(&db,&params,&data)
+    {
+        code = last_error_code()
+        error = last_error()
+
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if isset("@@_action_context") { do dbr.apps.action.log() }
+
+        if isanyword(@@(params,"$_operation"),"create,update")
+        {
+            if isnull(data) { ref data:record.create() }
+            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores. 'propietario-nombre'" }
+
+            ref FormData = record.copy(data,"*")
+            do record.clear(data)
+            data<"form*"> : FormData
+            
+            do prepareView(db,params,data)
+        }
+        else if @@(params,"$_operation") == "delete"
+        {
+            if contains(error,"Cannot delete or update a parent row") || contains(error,"DELETE Error") {
+                error = "No es posible eliminar, otros registros dependen del elemento proporcionado."
+            }
+        }
+        
+        do clear_exceptions()
+        do rise_error(code,error)
+    }
+}

@@ -1,0 +1,69 @@
+#include "ddm.dkh"
+model "pim"
+{
+    /** 
+    Gestión de información personal
+    =======================================================================
+    Permite administrar calendarios, notas y listas de tareas.
+    */
+    #include "induxsoft.abstracts.ddm"
+
+    entity "pim_calendar" : "TableModel"
+    {
+        @"propietario" ref:"tuser" required
+        @"nombre" string(32) required
+        @"notas" memo
+        @"start_weekday" string(10)
+		@"start_lab_hour" int
+		@"end_lab_hour" int
+		@"interval" int
+		@"min_duration" int
+        @"max_duration" int
+        @"breaks" string(150)
+		@"weekend" string(65)
+		@"holidays" memo
+        
+        index "pim_calendar_idx1" unique
+        {
+            field "propietario"
+            field "nombre"
+        }
+    }
+
+    entity "pim_events" : "TableModel"
+    {
+        @"calendar" ref:"pim_calendar" required
+        @"type" ref:"pim_events_type" required
+        @"status" int //null|0=pendiente, 1=hecho, 99-cancelado
+        @"id" string(32)
+        @"start" datetime
+        @"duration" int
+        @"caption" string(50)
+        @"backcolor" string(7)
+        @"color" string(7)
+        @"data" memo
+    }
+
+    entity "pim_calendar_per" : "TableModel"
+    {
+        @"calendar" ref:"pim_calendar" required
+        @"es_grupo" bool
+        @"guid" string(32) required //sys_guid de un usuario o un grupo (depende de "es_grupo")
+        @"crear" bool //Si es true, además de ver, también puede crear eventos del calendario
+        @"editar" bool //Si es true, además de ver, también puede editar o reagendar eventos del calendario
+        @"eliminar" bool //Si es true, además de ver, también puede eliminar eventos del calendario
+        
+        index "pim_calendar_per_idx1" unique
+        {
+            field "calendar"
+            field "guid"
+        }
+    }
+
+    entity "pim_events_type" : "TableModel"
+    {
+        @"nombre" string(50) unique required
+        @"backcolor" string(7) //Color de fondo
+        @"color" string(7) //Color de texto
+    }
+}

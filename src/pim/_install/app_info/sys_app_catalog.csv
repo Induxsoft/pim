@@ -1,0 +1,4 @@
+"pack_id","app_id","app_title","created","app_info"
+pim,pim.calendar,Calendario,"2025-09-01T23:59:59","Calendario"
+pim,pim.events,Eventos,"2025-09-01T23:59:59","Eventos del calendario"
+pim,pim.members,Miembros,"2025-09-01T23:59:59","Miembros del calendario"

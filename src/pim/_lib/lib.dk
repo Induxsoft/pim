@@ -1,0 +1,41 @@
+#include "dkli.dkh"
+#!
+module "Funciones de propósito general"
+{
+	if not(isset("@http_context")) && isset("@crud_context") { ref @http_context = ifnull(@@(@crud_context,"&http"),record.create()) }
+	
+	function fd(name,type,&obj)
+    {
+        if isnull(obj) { ref obj:record.create() }
+        name = trim(str(name))
+        type = trim(str(type))
+        
+        if isanyword(type,"nm,num,number")
+        {
+            value = @("#./form/"+name)
+            if value == 0 { value = @("#input/"+name) }
+            if value == 0 { value = @@(obj,"#"+name) }
+            return value
+        }
+        else if isanyword(type,"rd,rdb,ch,chk")
+        {
+            bool = trim(@("$./form/"+name))
+            if bool == "" { bool = trim(@("$input/"+name)) }
+            if bool == "" { bool = trim(@@(obj,"$"+name)) }
+            return ifstr(parse.bool(bool),"checked","")
+        }
+        else
+        {
+            value = trim(@("$./form/"+name))
+            if value == "" { value = trim(@("$input/"+name)) }
+            if value == "" { value = trim(@@(obj,"$"+name)) }
+            return value
+        }
+    }
+	
+	function GetPkUsr(&db,usrId)
+    {
+        new params { @"id": usrId }
+        return dbr.num(db,"SELECT usr.sys_pk FROM tuser AS usr LEFT JOIN sys_session AS ss ON usr.sys_pk = ss.iuser WHERE usr.sys_guid = @id OR usr.userid = @id OR ss.sys_guid = @id",params)
+    }
+}

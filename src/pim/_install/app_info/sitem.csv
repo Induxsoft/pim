@@ -1,0 +1,14 @@
+﻿itemid,description,itemparent
+pim,Gestión de información personal,\0
+pim.calendar,Calendario,pim
+TF10,Calendario,pim.calendar
+TF11,Crear calendario,pim.calendar
+TF12,Editar calendario,pim.calendar
+TF13,Eliminar calendario,pim.calendar
+TF14,Miembros del calendario,pim.calendar
+pim.events,Eventos de calendario,pim
+TF21,Crear evento de calendario,pim.events
+TF22,Editar evento de calendario,pim.events
+TF23,Eliminar evento de calendario,pim.events
+TF24,Ver mensajes,pim.events
+TF25,Publicar mensajes,pim.events

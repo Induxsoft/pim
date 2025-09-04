@@ -1,0 +1,30 @@
+/*========================================== LIST */
+.calendario-item {
+    transition: .3s;
+    outline: 1px solid transparent;
+    border: 1px solid #DDD;
+    text-decoration: none;
+    color: black;
+    align-items: center; 
+    justify-content: center;
+    display: flex;
+}
+.calendario-item:hover {
+    box-shadow: 3px 3px 9px 0 #DDD;
+    outline: 1px solid #DDD;
+    color: black;
+}
+
+/*========================================== FORM */
+.choices__inner {
+    padding: .25rem;
+    height: auto;
+    min-height: initial;
+    background-color: #fff;
+}
+.choices__input {
+    margin: 0;
+    padding: 0;
+    border: 0 !important;
+    background-color: #fff;
+}

@@ -1,0 +1,41 @@
+#include "dkli.dkh"
+#!
+module "Variables globales"
+{
+	if not(isset("@http_context")) && isset("@crud_context") { ref @http_context = ifnull(@@(@crud_context,"&http"),record.create()) }
+	do errordet(@false) //Mostrar detalles del error: @true -> {code} description [Ln 000] | @false -> description
+
+	@css_main = "/$/pim/css/main.css"
+	@css_pim_calendar = "/$/pim/css/pim_calendar.css"
+	@css_choices = "https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
+	@css_flatpickr = "https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+	
+	@js_pim_calendar = "/$/pim/js/pim_calendar.js"
+	@js_pim_events = "/$/pim/js/pim_events.js"
+	@js_pim_members = "/$/pim/js/pim_members.js"
+	@js_choices = "https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"
+	@js_flatpickr = "https://cdn.jsdelivr.net/npm/flatpickr"
+
+	@url_search_users = "/!/pim/calendar/?action=search-users&search=@search"
+	@url_search_groups = "/!/pim/calendar/?action=search-groups&search=@search"
+
+	@pim_calendar = "/!/pim/calendar/"
+	@pim_calendar_new = "/!/pim/calendar/_new/"
+	@pim_calendar_edt = "/!/pim/calendar/@_entity_id/"
+	@pim_calendar_see = "/!/pim/calendar/@_entity_id/?action=view-calendar"
+	@pim_calendar_evt = "/!/pim/calendar/@_entity_id/?action=view-event"
+	@pim_calendar_per = "/!/pim/calendar/@_entity_id/?action=view-members"
+
+	@pim_events_new = "/!/pim/events/_new/"
+	@pim_events_edt = "/!/pim/events/@_entity_id/"
+	@pim_events_log = "/!/webshell/log/DET099/@guid/"
+
+	@pim_members_new = "/!/pim/members/_new/"
+	@pim_members_edt = "/!/pim/members/@_entity_id/"
+
+	@default_max_rows = 250
+
+	@stt_event_pendiente = 0
+	@stt_event_hecho = 1
+	@stt_event_cancelado = 99
+}

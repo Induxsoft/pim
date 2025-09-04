@@ -1,0 +1,10 @@
+"id","title","shorttitle","icon16x16","href","_blank","appid","itemtype","req_context_item_id","act_type"
+
+TF11,Crear calendario,Crear,,/!/pim/calendar/_new/,0,pim.calendar,DET098,0,action
+TF12,Editar calendario,Editar,,/!/pim/calendar/@_src_context_item_id/,0,pim.calendar,DET098,1,action
+TF13,Eliminar calendario,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,pim.calendar,DET098,1,action
+TF14,Miembros del calendario,Miembros,,/!/pim/calendar/@_src_context_item_id/users/,0,pim.calendar,DET098,1,action
+
+TF21,Crear evento de calendario,Crear,,/!/pim/events/_new/,0,pim.events,DET099,0,action
+TF22,Editar evento de calendario,Editar,,/!/pim/events/@_src_context_item_id/,0,pim.events,DET099,1,action
+TF23,Eliminar evento de calendario,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",,pim.events,DET099,1,action

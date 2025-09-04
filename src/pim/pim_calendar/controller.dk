@@ -1,0 +1,43 @@
+#include "dkli.dkh"
+#!
+module "CalendarController"
+{
+    point @list to calendar.list
+    point @read to calendar.read
+    point @blank to calendar.blank
+    point @create to calendar.create
+    point @update to calendar.update
+    point @delete to calendar.delete
+
+    switch @@(params,"$action")
+    {
+        case "search-users"
+        {
+            point @list to calendar.searchUsers
+            break
+        }
+        case "search-groups"
+        {
+            point @list to calendar.searchGroups
+            break
+        }
+        case "view-calendar"
+        {
+            @list_view = "calendar.dk"
+            @form_view = "calendar.dk"
+            break
+        }
+        case "view-event"
+        {
+            @list_view = "event.dk"
+            @form_view = "event.dk"
+            break
+        }
+        case "view-members"
+        {
+            @list_view = "members.dk"
+            @form_view = "members.dk"
+            break
+        }
+    }
+}

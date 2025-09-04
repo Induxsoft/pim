@@ -1,0 +1,121 @@
+#include "dkli.dkh"
+#!
+module "list.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "../_lib/config.dk"
+    #include "../_lib/icons.dk"
+
+    do @context.begin(@crud_context)
+
+    ref data = ifnull(@("&./data"),list.create())
+
+	@_entities_type = @("$parameters/_entities_type")
+    data_length = list.count(data)
+
+    function printNavButtons()
+    {
+        btn_cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners no-shadow"
+        #$
+        a(class="#<btn_cls>" href="#<@pim_calendar_new>" title="Crear calendario"){$"#<@ICON_PLUS_LG>"}
+        #!
+    }
+    point buttons to printNavButtons
+    new nav_config
+    {
+        @"title": "Calendarios"
+        @"urlexit": "/"
+        @"buttons*": buttons
+        // @"actions*": ifnull(@("&./itemactions"),list.create())
+        @"reports*": ifnull(@("&./itemreports"),list.create())
+
+        member "hidden"
+        {
+            @"print": @true
+            @"copy": @true
+            @"csv": @true
+        }
+    }
+    // Encapsula a la vista en su totalidad, todo lo que hay antes o después no se considera 
+    #$
+    div(class="container-fluid" id="view")
+    {
+        // Filtros y acciones
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+
+            form(class="mb-1" action="./" method="GET" id="form-filter")
+            {
+                "filter-text"(class="w-100" id="fil_text" "text-field"="search" value="#<@('$parameters/search')>" placeholder="Buscar ..." "form"="#form-filter" "auto-submit"="true"){$""}
+            }
+        }
+        // Contenido principal
+        section(id="work_area")
+        {
+            link(href="#<@css_pim_calendar>" rel="stylesheet")
+            #!
+            for i = 0; i < data_length
+            {
+                ref item = list.obj(data,i)
+                key = @@(item,"sys_pk")
+                nombre = @@(item,"nombre")
+                propietario = @@(item,"username")
+
+                edit_url = replace(@pim_calendar_edt,"@_entity_id",key)
+                view_url = replace(@pim_calendar_see,"@_entity_id",key)
+                usrs_url = replace(@pim_calendar_per,"@_entity_id",key)
+
+                #$
+                div(class="row gx-2 gy-2 p-2" id="calendarios")
+                {
+                    div(class="col-auto")
+                    {
+                        a(class="calendario-item" href="#<view_url>")
+                        {
+                            div(class="card")
+                            {
+                                div(class="card-body text-center")
+                                {
+                                    h5(class="card-title text-dark"){"#<nombre>"}
+                                    h6(class="card-subtitle text-muted"){"#<propietario>"}
+                                }
+                            }
+                        }
+                    }
+                }
+                #!
+            }
+            if data_length < 1
+            {
+                #$ div(style="background-color:#F5F5F5; padding: 10rem 0; text-align:center;"){ h6{"Sin resultados"} }
+            }
+            #$
+        }
+        // Resúmenes y datos al pie
+        section(id="bottom_area")
+        {
+            //////////////////////////////////////////////////////////////////
+            div(id="_custom_area")
+            {
+                // script(src=""){$""}
+                script(type="text/javascript")
+                {$'
+                    function filter(ff) { ff.form.submit(); }
+                    
+                    document.addEventListener("DOMContentLoaded", () => {
+                        // Script injection
+                        #<@@(@crud_context,"script")>
+                    });
+                '}
+            }
+        }
+    }
+    #!
+
+    do @context.end()
+}

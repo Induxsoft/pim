@@ -1,0 +1,1 @@
+[{"pattern":"/_program/","routes":[{"route":"/calendar/","entity_type":"pim_calendar"},{"route":"/events/","entity_type":"pim_events"},{"route":"/members/","entity_type":"pim_calendar_per"}]}]
