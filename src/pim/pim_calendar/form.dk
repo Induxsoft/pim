@@ -34,6 +34,13 @@ module "form.dk"
         #$
         button(class="#<cls>" type="submit" form="#<@form_id>" title="Guardar"){$"#<@ICON_SAVE>"}
         #!
+        if not(@is_new)
+        {
+            view_url = replace(@pim_calendar_see,"@_entity_id",@_entity_id)
+            #$
+            a(class="#<cls>" href="#<view_url>" title="Agenda"){$"#<@ICON_CALENDAR>"}
+        }
+        #!
     }
     point buttons to printNavButtons
     new nav_config
@@ -75,10 +82,10 @@ module "form.dk"
 
     new sel_interval
     {
-        @"id": "interval"
+        @"id": "intervalo"
         @"value_field": "id"
         @"text_field": "const"
-        @"selected": fd("interval","text",entity)
+        @"selected": fd("intervalo","text",entity)
         @"datatable*": from.json('[
             { "id":"15", "const":"15 min" },
             { "id":"30", "const":"30 min" },
@@ -87,7 +94,7 @@ module "form.dk"
         ]')
         member "attributes"
         {
-            @"name": "interval"
+            @"name": "intervalo"
             @"class": "form-select form-select-sm rounded-0"
         }
     }
@@ -170,7 +177,7 @@ module "form.dk"
                         }
                         div(class="col-4 col-md-3" title="Minutos en los que el horario laboral es segmentado")
                         {
-                            label(class="form-label" "for"="interval"){"Intervalo:"}
+                            label(class="form-label" "for"="intervalo"){"Intervalo:"}
                             ##
                             do uie.dbSelect(sel_interval)
                             ##
@@ -188,17 +195,17 @@ module "form.dk"
                         div(class="col-12" title="Lista de recesos/descansos en el día laboral")
                         {
                             label(class="form-label" "for"="breaks"){"Recesos:"}
-                            input(class="" type="text" name="breaks" value="" id="breaks")
+                            input(class="" type="text" name="breaks" value="#<fd('breaks','tx',entity)>" id="breaks")
                         }
                         div(class="col-12" title="Días no laborales")
                         {
                             label(class="form-label" "for"="weekend"){"Días de descanso:"}
-                            select(class="" name="weekend" id="weekend" multiple=""){""}
+                            select(class="" name="weekend" id="weekend" "data-default-values"="#<fd('weekend','tx',entity)>" multiple=""){""}
                         }
                         div(class="col-12" title="Días de descanso")
                         {
                             label(class="form-label" "for"="holidays"){"Fechas no laborales:"}
-                            input(class="flatpickr flatpickr-input w-100" type="text" name="holidays" value="" id="holidays" readonly="")
+                            input(class="flatpickr flatpickr-input w-100" type="text" name="holidays" id="holidays" "data-default-values"="#<fd('holidays','tx',entity)>" readonly="")
                         }
                     }
                 }

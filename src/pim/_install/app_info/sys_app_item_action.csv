@@ -3,8 +3,18 @@
 TF11,Crear calendario,Crear,,/!/pim/calendar/_new/,0,pim.calendar,DET098,0,action
 TF12,Editar calendario,Editar,,/!/pim/calendar/@_src_context_item_id/,0,pim.calendar,DET098,1,action
 TF13,Eliminar calendario,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,pim.calendar,DET098,1,action
-TF14,Miembros del calendario,Miembros,,/!/pim/calendar/@_src_context_item_id/users/,0,pim.calendar,DET098,1,action
 
-TF21,Crear evento de calendario,Crear,,/!/pim/events/_new/,0,pim.events,DET099,0,action
+TF20,Eventos de calendario,Eventos,,/!/pim/events/?calendar=@calendar_id,0,pim.events,DET099,1,action
+TF21,Crear evento de calendario,Crear,,/!/pim/events/_new/?calendar=@calendar_id,0,pim.events,DET099,1,action
 TF22,Editar evento de calendario,Editar,,/!/pim/events/@_src_context_item_id/,0,pim.events,DET099,1,action
-TF23,Eliminar evento de calendario,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",,pim.events,DET099,1,action
+TF23,Eliminar evento de calendario,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,pim.events,DET099,1,action
+
+TF30,Miembros del calendario,Miembros,,/!/pim/members/?calendar=@calendar_id,0,pim.members,DET0A0,1,action
+TF31,Agregar miembro de calendario,Agregar,,/!/pim/members/_new/?calendar=@calendar_id,0,pim.members,DET0A0,1,action
+TF32,Editar miembro de calendario,Editar,,/!/pim/members/@_src_context_item_id/,0,pim.members,DET0A0,1,action
+TF33,Quitar miembro de calendario,Quitar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,pim.members,DET0A0,1,action
+
+TF40,Tipos de eventos de calendario,Tipos de eventos,,/!/pim/events-type/,0,pim.evtypes,DET0AF,0,shortcut
+TF41,Crear tipo de eventos de calendario,Agregar,,/!/pim/events-type/_new/,0,pim.evtypes,DET0AF,0,action
+TF42,Editar tipo de evento de calendario,Editar,,/!/pim/events-type/@_src_context_item_id/,0,pim.evtypes,DET0AF,1,action
+TF43,Eliminar tipo de evento de calendario,Quitar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,pim.evtypes,DET0AF,1,action

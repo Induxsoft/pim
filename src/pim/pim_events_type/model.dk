@@ -1,0 +1,160 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    @table_name = "pim_events_type" // params._entities_type
+    @keyfield = "sys_pk" // params._key
+    @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user"
+
+    @list_query = "
+    SELECT
+        sys_pk,
+        nombre,
+        backcolor,
+        color
+    FROM #<@table_name>
+    WHERE
+        NOT IFNULL(sys_deleted,0)
+        AND (@search IS NULL OR nombre LIKE CONCAT('%',@search,'%'))
+    LIMIT #<@default_max_rows>
+    "
+    @read_query = "SELECT * FROM #<@table_name> WHERE #<@keyfield> = @_entity_id LIMIT 1"
+
+    //#region validateFields()
+    function validateFields(&data)
+    {
+        //code here...
+    }
+
+    //#region list()
+    function list(&db,&params)
+    {
+        do dbr.apps.action.grant("TF40")
+        
+        new data
+        {
+            @"data*": entity.list(db,params)
+            @"itemactions*": dbr.apps.itemactions(db,"DET0AF","action","",0)
+            @"itemreports*": dbr.apps.itemactions(db,"DET0AF","report","",0)
+        }
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region read()
+    function read(&db,&params)
+    {
+        do dbr.apps.action.grant("TF40")
+
+        return entity.read(db,params)
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region blank()
+    function blank(&db,&params)
+    {
+        do dbr.apps.action.grant("TF40")
+        
+        new data {}
+        return data
+        
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region create()
+    function create(&db,&params,&data)
+    {
+        do dbr.apps.action.grant("TF41")
+
+        do validateFields(data)
+        ref entity = entity.create(db,params,data)
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region update()
+    function update(&db,&params,&data)
+    {
+        do dbr.apps.action.grant("TF42")
+
+        do validateFields(data)
+        ref entity = entity.update(db,params,data)
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region delete()
+    function delete(&db,&params)
+    {
+        do dbr.apps.action.grant("TF43")
+
+        ref entity = @null
+        deleted = @false
+
+        codeblock "Intentar eliminación física"
+        {
+            do entity.delete(db,params)
+            deleted = @true
+            
+            exception
+            {
+                do dbr.apps.action.log()
+                do pop_exception()
+            }
+        }
+        if not(deleted)
+        {
+            lastuser = @@(@http_context,"$session/user/uid")
+            sql = ftext("
+            UPDATE #<@table_name> SET
+                sys_timestamp = NOW(),
+                sys_lastuser = #<lastuser>,
+                sys_deleted = 1
+            WHERE #<@keyfield> = @_entity_id
+            ")
+            do dbr.execute(db,sql,params)
+            ref entity:entity.read(db,params)
+        }
+
+        return entity
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region catch()
+    function catch(&db,&params,&data)
+    {
+        do errordet(@false)
+        code = last_error_code()
+        error = last_error()
+
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if isset("@@_action_context") { do dbr.apps.action.log() }
+
+        if isanyword(@@(params,"$_operation"),"create,update")
+        {
+            if isnull(data) { ref data:record.create() }
+            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores." }
+        }
+        else if @@(params,"$_operation") == "delete"
+        {
+            if contains(error,"Cannot delete or update a parent row") || contains(error,"DELETE Error") {
+                error = "No es posible eliminar, otros registros dependen del elemento proporcionado."
+            }
+        }
+        
+        do clear_exceptions()
+        do rise_error(code,error)
+    }
+
+    point @list to list
+    point @read to read
+    point @blank to blank
+    point @create to create
+    point @update to update
+    point @delete to delete
+}

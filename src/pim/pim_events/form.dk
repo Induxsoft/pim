@@ -49,24 +49,6 @@ module "form.dk"
         }
     }
 
-    new sel_status
-    {
-        @"id": "status"
-        @"value_field": "id"
-        @"text_field": "const"
-        @"selected": fd("status","nm",entity)
-        @"datatable*": from.json('[
-            { "id":"0", "const":"Pendiente" },
-            { "id":"1", "const":"Hecho" },
-            { "id":"99", "const":"Cancelado" }
-        ]')
-        member "attributes"
-        {
-            @"name": "status"
-            @"class": "form-select rounded-0"
-        }
-    }
-
     new sel_type
     {
         @"id": "type"
@@ -78,6 +60,7 @@ module "form.dk"
         {
             @"name": "type"
             @"class": "form-select rounded-0"
+            @"required": ""
         }
     }
     // Encapsula a la vista en su totalidad, todo lo que hay antes o después no se considera 
@@ -114,17 +97,27 @@ module "form.dk"
 
                 div(class="row gx-1 gx-sm-2 gx-md-3 gx-lg-4")
                 {
-                    div(class="col-3")
+                    div(class="col-12 col-sm-4 col-md-3")
                     {
-                        label(class="form-label" "for"="id"){"ID:"}
-                        input(class="form-control rounded-0" type="text" name="id" value="#<fd('id','tx',entity)>" id="id" maxlength="32" required="")
+                        label(class="form-label" "for"="type"){"Tipo:"}
+                        ##
+                        do uie.dbSelect(sel_type)
+                        ##
                     }
-                    div(class="col-9")
+                    div(class="col-12")
                     {
                         label(class="form-label" "for"="caption"){"Descripción:"}
-                        input(class="form-control rounded-0" type="text" name="caption" value="#<fd('caption','tx',entity)>" id="caption" maxlength="50" required="")
+                        textarea(class="form-control rounded-0" name="caption" id="caption" rows="3" required=""){"#<fd('caption','tx',entity)>"}
                     }
-                    div(class="col-6 col-sm-4 col-md-3")
+                    div(class="col-12 py-1")
+                    {
+                        div(class="form-check form-check-inline")
+                        {
+                            input(class="form-check-input" type="checkbox" name="important" id="important" "#<fd('important','ch',entity)>"="")
+                            label(class="form-check-label" "for"="important"){"¡Importante!"}
+                        }
+                    }
+                    div(class="col-12 col-sm-4 col-md-3")
                     {
                         label(class="form-label" "for"="start"){"Inicio:"}
                         input(class="form-control rounded-0" type="datetime-local" name="start" value="#<fd('caption','dtm',entity)>" id="start" required="")
@@ -133,20 +126,6 @@ module "form.dk"
                     {
                         label(class="form-label" "for"="duration"){"Duración:"}
                         input(class="form-control rounded-0" type="number" name="duration" value="#<fd('duration','nm',entity)>" id="duration" required="")
-                    }
-                    div(class="col-6 col-sm-4 col-md-3")
-                    {
-                        label(class="form-label" "for"="status"){"Estado:"}
-                        ##
-                        do uie.dbSelect(sel_status)
-                        ##
-                    }
-                    div(class="col-6 col-sm-4 col-md-3")
-                    {
-                        label(class="form-label" "for"="type"){"Tipo:"}
-                        ##
-                        do uie.dbSelect(sel_type)
-                        ##
                     }
                     div(class="col-3 col-sm-2 col-md-1")
                     {

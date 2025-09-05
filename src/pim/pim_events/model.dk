@@ -1,64 +1,23 @@
 #include "dkli.dkh"
 #!
-module ":calendar"
+module "model.dk"
 {
-    @table_name = "pim_calendar"
-    @keyfield = @pim_calendar_keyfield
-    @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user"
+    @table_name = "pim_events"
+    @keyfield = @pim_events_keyfield
+    @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user,calendar"
+    // @create_alias_fields = ""
+    // @update_alias_fields = ""
 
     @list_query = "SELECT * FROM #<@table_name> WHERE NOT IFNULL(sys_deleted,0) LIMIT #<@default_max_rows>"
     @read_query = "SELECT * FROM #<@table_name> WHERE #<@keyfield> = @_entity_id LIMIT 1"
+    @calendar_query = "SELECT * FROM pim_calendar WHERE #<@pim_calendar_keyfield> = @calendar LIMIT 1"
 
-    function searchUsers(&db,&params)
-    {
-        sql = "SELECT sys_pk pk, sys_guid guid, userid id, username name FROM tuser WHERE "
-        if field.exist(params,"key")
-        {
-            sql = sql + "userid = @key OR sys_guid = @key OR sys_pk = CAST(@key AS DECIMAL)"
-            return dbr.rec(db,sql,params)
-        }
-
-        sql = sql + "NOT IFNULL(sys_deleted,0) AND NOT IFNULL(locked,0) AND (userid=@search OR username LIKE CONCAT('%',@search,'%'))"
-        return dbr.list(db,sql,params)
-    }
-
-    function searchGroups(&db,&params)
-    {
-        sql = "SELECT sys_pk pk, sys_guid guid, groupid id, description name FROM usergroup WHERE "
-        if field.exist(params,"key")
-        {
-            sql = sql + "groupid = @key OR sys_guid = @key OR sys_pk = CAST(@key AS DECIMAL)"
-            return dbr.rec(db,sql,params)
-        }
-
-        sql = sql + "NOT IFNULL(sys_deleted,0) AND (groupid=@search OR description LIKE CONCAT('%',@search,'%'))"
-        return dbr.list(db,sql,params)
-    }
-
-    function getOwner(&db,sys_pk)
-    {
-        new p { @"key": sys_pk }
-        if sys_pk < 1 { p.key := @@(@http_context,"$session/user/uid") }
-
-        return searchUsers(db,p)
-    }
-    
     //#region prepareView()
     function prepareView(&db,&params,&data)
     {
         is_new = (@@(params,"$_entity_id") == "_new")
-        propietario = 0
-        
-        if field.exist(data,"form")
-        {
-            propietario = @@(data,"#form/propietario")
-        }
-        else if field.exist(data,"entity")
-        {
-            propietario = @@(data,"#entity/propietario")
-        }
 
-        data<"propietario*"> : getOwner(db,propietario)
+        //code here...
     }
 
     //#region validateFields()
@@ -70,24 +29,13 @@ module ":calendar"
     //#region list()
     function list(&db,&params)
     {
-        do dbr.apps.action.grant("TF10")
-
-        new data
-        {
-            @"data*": entity.list(db,params)
-            @"itemactions*": dbr.apps.itemactions(db,"DET098","action","",0)
-            @"itemreports*": dbr.apps.itemactions(db,"DET098","report","",0)
-        }
-
-        return data
-
-        exception{ do catch(db,params,@null) }
+        do rise_error(500,"Acción no implementada")
     }
 
     //#region read()
     function read(&db,&params)
     {
-        do dbr.apps.action.grant("TF10")
+        do dbr.apps.action.grant("TF20")
 
         if not(isset("@just_read_entity")) { @just_read_entity = @false }
         if @just_read_entity { return entity.read(db,params) }
@@ -102,27 +50,13 @@ module ":calendar"
     //#region blank()
     function blank(&db,&params)
     {
-        do dbr.apps.action.grant("TF10")
+        do dbr.apps.action.grant("TF20")
 
-        new data
-        {
-            member "entity"
-            {
-                @"breaks": dbr.vars.get(db,"pim_calendar_breaks")
-                @"weekend": dbr.vars.get(db,"pim_calendar_weekend")
-                @"holidays": dbr.vars.get(db,"pim_calendar_holidays")
-                @"start_weekday": dbr.vars.get(db,"pim_calendar_start_weekday")
-                @"start_lab_hour": dbr.vars.get(db,"pim_calendar_start_lab_hour")
-                @"end_lab_hour": dbr.vars.get(db,"pim_calendar_end_lab_hour")
-                @"intervalo": dbr.vars.get(db,"pim_calendar_interval")
-                @"min_duration": dbr.vars.get(db,"pim_events_min_duration")
-                @"max_duration": dbr.vars.get(db,"pim_events_max_duration")
-            }
-        }
+        new data {}
         do prepareView(db,params,data)
-
+        
         return data
-
+        
         exception{ do catch(db,params,@null) }
     }
 
@@ -132,7 +66,7 @@ module ":calendar"
         @use_transaction = @false
         @just_read_entity = @true
         
-        do dbr.apps.action.pre("TF11")
+        do dbr.apps.action.pre("TF21")
         do dbr.begin(db)
 
         do validateFields(data)
@@ -141,8 +75,6 @@ module ":calendar"
         do dbr.apps.action.pos(entity)
         do dbr.commit(db)
         do dbr.apps.action.ext(entity)
-
-        @url_redir = replace(@pim_calendar_see,"@_entity_id",@@(entity,@keyfield))
 
         return entity
 
@@ -155,7 +87,7 @@ module ":calendar"
         @use_transaction = @false
         @just_read_entity = @true
         
-        do dbr.apps.action.pre("TF12")
+        do dbr.apps.action.pre("TF22")
         do dbr.begin(db)
 
         do validateFields(data)
@@ -164,8 +96,6 @@ module ":calendar"
         do dbr.apps.action.pos(entity)
         do dbr.commit(db)
         do dbr.apps.action.ext(entity)
-
-        @url_redir = replace(@pim_calendar_see,"@_entity_id",@@(entity,@keyfield))
 
         return entity
 
@@ -177,7 +107,7 @@ module ":calendar"
     {
         @use_transaction = @false
         
-        do dbr.apps.action.pre("TF13")
+        do dbr.apps.action.pre("TF23")
 
         ref entity = @null
         deleted = @false
@@ -186,8 +116,7 @@ module ":calendar"
         {
             do dbr.begin(db)
 
-            do dbr.delete(db,"pim_calendar_per","calendar=@_entity_id",params)
-            do dbr.delete(db,"pim_events","calendar=@_entity_id",params)
+            // Eliminar registros relacionados aqui...
             do entity.delete(db,params)
 
             do dbr.apps.action.pos(entity)
@@ -211,9 +140,7 @@ module ":calendar"
             UPDATE #<@table_name> SET
                 sys_timestamp = NOW(),
                 sys_lastuser = #<lastuser>,
-                sys_deleted = 1,
-                sys_info = nombre,
-                nombre = CONCAT('~',sys_pk)
+                sys_deleted = 1
             WHERE #<@keyfield> = @_entity_id
             ")
             do dbr.execute(db,sql,params)
@@ -232,6 +159,7 @@ module ":calendar"
     //#region catch()
     function catch(&db,&params,&data)
     {
+        do errordet(@false)
         code = last_error_code()
         error = last_error()
 
@@ -241,7 +169,7 @@ module ":calendar"
         if isanyword(@@(params,"$_operation"),"create,update")
         {
             if isnull(data) { ref data:record.create() }
-            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores. 'propietario-nombre'" }
+            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores." }
 
             ref FormData = record.copy(data,"*")
             do record.clear(data)
@@ -259,4 +187,11 @@ module ":calendar"
         do clear_exceptions()
         do rise_error(code,error)
     }
+
+    point @list to list
+    point @read to read
+    point @blank to blank
+    point @create to create
+    point @update to update
+    point @delete to delete
 }

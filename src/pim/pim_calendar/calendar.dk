@@ -25,7 +25,7 @@ module "form.dk"
     start_weekday = @@(calendar,"$start_weekday")
     start_lab_hour = @@(calendar,"#start_lab_hour")
     end_lab_hour = @@(calendar,"#end_lab_hour")
-    interval = @@(calendar,"#interval")
+    interval = @@(calendar,"#intervalo")
     increment = 15
     min_duration = @@(calendar,"#min_duration")
     max_duration = @@(calendar,"#max_duration")

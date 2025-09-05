@@ -113,42 +113,6 @@
                 "varhelp": "Duración máxima en minutos para los eventos.",
                 "vartype": "int",
                 "varinput": { "control": "number" }
-            },
-            {
-                "varname": "pim_events_important_backcolor",
-                "vardefault": "",
-                "varvalue": "#E0F5FF",
-                "varcaption": "",
-                "varhelp": "",
-                "vartype": "string",
-                "varinput": { "control": "hexcolor" }
-            },
-            {
-                "varname": "pim_events_pending_backcolor",
-                "vardefault": "",
-                "varvalue": "#FFFFE1",
-                "varcaption": "",
-                "varhelp": "",
-                "vartype": "string",
-                "varinput": { "control": "hexcolor" }
-            },
-            {
-                "varname": "pim_events_done_backcolor",
-                "vardefault": "",
-                "varvalue": "#E0FFE1",
-                "varcaption": "",
-                "varhelp": "",
-                "vartype": "string",
-                "varinput": { "control": "hexcolor" }
-            },
-            {
-                "varname": "pim_events_canceled_backcolor",
-                "vardefault": "",
-                "varvalue": "#FFE0E1",
-                "varcaption": "",
-                "varhelp": "",
-                "vartype": "string",
-                "varinput": { "control": "hexcolor" }
             }
         ]
     }

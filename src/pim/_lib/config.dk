@@ -19,19 +19,31 @@ module "Variables globales"
 	@url_search_users = "/!/pim/calendar/?action=search-users&search=@search"
 	@url_search_groups = "/!/pim/calendar/?action=search-groups&search=@search"
 
+	@pim_calendar_keyfield = "sys_pk"
+	@pim_events_keyfield = "sys_pk"
+	@pim_members_keyfield = "sys_pk"
+	@pim_evtype_keyfield = "sys_pk"
+
 	@pim_calendar = "/!/pim/calendar/"
 	@pim_calendar_new = "/!/pim/calendar/_new/"
 	@pim_calendar_edt = "/!/pim/calendar/@_entity_id/"
+	@pim_calendar_del = @pim_calendar_edt
 	@pim_calendar_see = "/!/pim/calendar/@_entity_id/?action=view-calendar"
-	@pim_calendar_evt = "/!/pim/calendar/@_entity_id/?action=view-event"
-	@pim_calendar_per = "/!/pim/calendar/@_entity_id/?action=view-members"
+	@pim_calendar_per = "/!/pim/members/?calendar=@_entity_id"
 
 	@pim_events_new = "/!/pim/events/_new/"
 	@pim_events_edt = "/!/pim/events/@_entity_id/"
+	@pim_events_del = @pim_events_edt
 	@pim_events_log = "/!/webshell/log/DET099/@guid/"
 
 	@pim_members_new = "/!/pim/members/_new/"
 	@pim_members_edt = "/!/pim/members/@_entity_id/"
+	@pim_members_del = @pim_members_edt
+
+	@pim_events_type = "/!/pim/events-type/"
+	@pim_events_type_new = "/!/pim/events-type/_new/"
+	@pim_events_type_edt = "/!/pim/events-type/@_entity_id/"
+	@pim_events_type_del = @pim_events_type_edt
 
 	@default_max_rows = 250
 

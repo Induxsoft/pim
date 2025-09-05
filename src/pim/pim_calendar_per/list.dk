@@ -11,7 +11,7 @@ module "form.dk"
 
     do @context.begin(@crud_context)
 
-    ref calendar = ifnull(@("&./entity"),record.create())
+    ref calendar = ifnull(@("&./calendar"),record.create())
     ref members = ifnull(@("&./members"),list.create())
 
 	@_entities_type = @("$parameters/_entities_type")
@@ -112,12 +112,15 @@ module "form.dk"
             //////////////////////////////////////////////////////////////////
             div(id="_custom_area")
             {
-                script(src="#<@js_pim_calendar>"){""}
+                script(src="#<@js_pim_members>"){""}
                 script(type="text/javascript")
                 {$'
                     document.addEventListener("DOMContentLoaded", () => {
-                        calendar.members.tableId = "#<@table_id>";
-                        calendar.members.init();
+                        members.tableId = "#<@table_id>";
+                        members.url_save = "#<@pim_members_new>";
+                        members.url_delete = "#<@pim_members_edt>";
+                        members.keyfield = "#<@pim_members_keyfield>";
+                        members.init();
                         // Script injection
                         #<@@(@crud_context,"script")>
                     });

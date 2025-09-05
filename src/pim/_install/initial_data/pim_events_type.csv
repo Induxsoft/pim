@@ -1,0 +1,6 @@
+"sys_guid","sys_dtcreated","sys_timestamp","sys_dtexported","sys_user","sys_lastuser","sys_info","sys_exported","sys_deleted","sys_recver","sys_lock","nombre","backcolor","color"
+"01cf7e04160f470092bf5469cb15b2c8","2025-09-01T23:59:59","2025-09-01T23:59:59",\N,\N,\N,\N,0,0,0,\N,"Llamada","#FFFFE1","#000000"
+"b03cfc4698c742108e9e56283f5ff51a","2025-09-01T23:59:59","2025-09-01T23:59:59",\N,\N,\N,\N,0,0,0,\N,"Video conferencia","#E0FFE1","#000000"
+"7ccfe477bc31474ca686d123b5d8275a","2025-09-01T23:59:59","2025-09-01T23:59:59",\N,\N,\N,\N,0,0,0,\N,"Reunión presencial","#E0F5FF","#000000"
+"9e7c5942b2934476ad1f3b03338364b7","2025-09-01T23:59:59","2025-09-01T23:59:59",\N,\N,\N,\N,0,0,0,\N,"Visita a domicilio","#E5E0FF","#000000"
+"e7d120f36732461f8c1096401b7a768b","2025-09-01T23:59:59","2025-09-01T23:59:59",\N,\N,\N,\N,0,0,0,\N,"Reservado","#FFEFE0","#000000"

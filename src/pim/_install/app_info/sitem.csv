@@ -5,10 +5,20 @@ TF10,Calendario,pim.calendar
 TF11,Crear calendario,pim.calendar
 TF12,Editar calendario,pim.calendar
 TF13,Eliminar calendario,pim.calendar
-TF14,Miembros del calendario,pim.calendar
 pim.events,Eventos de calendario,pim
+TF20,Eventos de calendario,pim.events
 TF21,Crear evento de calendario,pim.events
 TF22,Editar evento de calendario,pim.events
 TF23,Eliminar evento de calendario,pim.events
 TF24,Ver mensajes,pim.events
 TF25,Publicar mensajes,pim.events
+pim.members,Miembros de calendario,pim
+TF30,Miembros de calendario,pim.members
+TF31,Agregar miembro de calendario,pim.members
+TF32,Editar miembro de calendario,pim.members
+TF33,Quitar miembro de calendario,pim.members
+pim.evtypes,Tipos de eventos de calendario,pim
+TF40,Tipos de eventos de calendario,pim.evtypes
+TF41,Crear tipo de eventos de calendario,pim.evtypes
+TF42,Editar tipo de evento de calendario,pim.evtypes
+TF43,Eliminar tipo de evento de calendario,pim.evtypes

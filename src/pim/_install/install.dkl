@@ -8,7 +8,9 @@ program "instalador"
 
     // Archivos de datos iniciales (Orden de importación)
     // deben estar en la carpeta _install/initial_data
-    ref @files_to_import = from.json('[]')
+    ref @files_to_import = from.json('[
+        "pim_events_type.csv"
+    ]')
 
     // Lista de privilegios iniciales (arreglo de id de privilegios)
     // Si se omite [] -> se registra todo el contenido del fichero de privilegios.

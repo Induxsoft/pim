@@ -8,6 +8,30 @@ model "pim"
     */
     #include "induxsoft.abstracts.ddm"
 
+    //* ======================================== [ DEPENDENCIAS (FK) ]
+    // Usuarios
+    entity "tuser" : "TableModel"
+    {
+        @"locked" bool 
+        @"message" string(255) 
+        @"notes" memo 
+        @"pwd" string(32) 
+        @"userid" string(120) unique required
+        @"username" string(120) required
+        @"pwdmd5" string(64) 
+
+        @"external" bool    //Si es true, el usuario se consiera externo
+    }
+    // Grupo de usuarios
+    entity "usergroup" : "TableModel"
+    {
+        @"description" string(80) required
+        @"groupid" string(32) unique required
+        @"notes" memo 
+        @"uf_hidetoolbar" string(1) 
+    }
+
+    //* ======================================== [ ENTIDADES PRINCIPALES ]
     entity "pim_calendar" : "TableModel"
     {
         @"propietario" ref:"tuser" required
@@ -16,7 +40,7 @@ model "pim"
         @"start_weekday" string(10)
 		@"start_lab_hour" int
 		@"end_lab_hour" int
-		@"interval" int
+		@"intervalo" int
 		@"min_duration" int
         @"max_duration" int
         @"breaks" string(150)
@@ -34,13 +58,13 @@ model "pim"
     {
         @"calendar" ref:"pim_calendar" required
         @"type" ref:"pim_events_type" required
-        @"status" int //null|0=pendiente, 1=hecho, 99-cancelado
-        @"id" string(32)
+        @"caption" memo
         @"start" datetime
         @"duration" int
-        @"caption" string(50)
         @"backcolor" string(7)
         @"color" string(7)
+        @"status" int //null|0=pendiente, 1=hecho, 99-cancelado
+        @"important" bool
         @"data" memo
     }
 

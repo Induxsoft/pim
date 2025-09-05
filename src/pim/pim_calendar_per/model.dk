@@ -1,0 +1,187 @@
+#include "dkli.dkh"
+#!
+module ":members"
+{
+    @table_name = "pim_calendar_per"
+    @keyfield = @pim_members_keyfield
+    @create_exclude_fields = "type,id,name"
+    @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user,calendar,es_grupo,guid,type,id,name"
+
+    @list_query = "
+    SELECT
+        m.sys_pk,
+        m.sys_guid,
+        m.calendar,
+        m.es_grupo,
+        m.guid,
+        if(m.crear,'Sí','No') crear,
+        if(m.editar,'Sí','No') editar,
+        if(m.eliminar,'Sí','No') eliminar,
+        if(m.es_grupo,'Grupo','Usuario') AS type,
+        IFNULL(u.userid,g.groupid) AS id,
+        IFNULL(u.username,g.description) AS name
+    FROM #<@table_name> m
+        LEFT JOIN tuser u ON m.guid = u.sys_guid
+        LEFT JOIN usergroup g ON m.guid = g.sys_guid
+    WHERE
+        NOT IFNULL(sys_deleted,0)
+        AND calendar = @calendar
+    LIMIT #<@default_max_rows>
+    "
+    @read_query = "SELECT * FROM #<@table_name> WHERE #<@keyfield> = @_entity_id LIMIT 1"
+    @calendar_query = "SELECT * FROM pim_calendar WHERE #<@pim_calendar_keyfield> = @calendar LIMIT 1"
+
+    //#region validateFields()
+    function validateFields(&data)
+    {
+        if @@(data,"#calendar") == 0 { do rise_error(511,"No se ha indicado el calendario al que pertenece el usuario o grupo.") }
+        if @@(data,"$guid") == "" { do rise_error(512,"Es necesario especificar un usuario o grupo de usuarios.") }
+        using data
+        {
+            @"es_grupo": parse.bool(@@(data,"$es_grupo"))
+            @"crear": parse.bool(@@(data,"$crear"))
+            @"editar": parse.bool(@@(data,"$editar"))
+            @"eliminar": parse.bool(@@(data,"$eliminar"))
+        }
+    }
+
+    //#region list()
+    function list(&db,&params)
+    {
+        do dbr.apps.action.grant("TF30")
+
+        new data
+        {
+            @"calendar*": dbr.rec(db,ftext(@calendar_query),params)
+            @"members*": entity.list(db,params)
+        }
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region read()
+    function read(&db,&params)
+    {
+        do dbr.apps.action.grant("TF40")
+        return entity.read(db,params)
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region blank()
+    function blank(&db,&params)
+    {
+        do rise_error(500,"Acción no implementada")
+    }
+
+    function save(&db,&params,&data)
+    {
+        @use_transaction = @false
+
+        ref add = @@(data,"&add")
+        ref edt = @@(data,"&edt")
+
+        for i = 0; i < list.count(add)
+        {
+            do members.create(db,params,list.obj(add,i))
+        }
+        for i = 0; i < list.count(edt)
+        {
+            do members.update(db,params,list.obj(edt,i))
+        }
+    }
+
+    //#region create()
+    function create(&db,&params,&data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+        
+        do dbr.apps.action.pre("TF31")
+        do dbr.begin(db)
+
+        do validateFields(data)
+        ref entity = entity.create(db,params,data)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region update()
+    function update(&db,&params,&data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+        
+        do dbr.apps.action.pre("TF32")
+        do dbr.begin(db)
+
+        do validateFields(data)
+        ref entity = entity.update(db,params,data)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region delete()
+    function delete(&db,&params)
+    {
+        @use_transaction = @false
+        
+        do dbr.apps.action.pre("TF33")
+        do dbr.begin(db)
+
+        ref entity = entity.delete(db,params)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        return entity
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region catch()
+    function catch(&db,&params,&data)
+    {
+        do errordet(@false)
+        code = last_error_code()
+        error = last_error()
+
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if isset("@@_action_context") { do dbr.apps.action.log() }
+
+        if isanyword(@@(params,"$_operation"),"create,update")
+        {
+            if isnull(data) { ref data:record.create() }
+            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores." }
+        }
+        else if @@(params,"$_operation") == "delete"
+        {
+            if contains(error,"Cannot delete or update a parent row") || contains(error,"DELETE Error") {
+                error = "No es posible eliminar, otros registros dependen del elemento proporcionado."
+            }
+        }
+        
+        do clear_exceptions()
+        do rise_error(code,error)
+    }
+
+    point @list to members.list
+    point @read to members.read
+    point @blank to members.blank
+    point @create to members.save
+    point @update to members.save
+    point @delete to members.delete
+}

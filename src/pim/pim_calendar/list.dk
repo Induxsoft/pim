@@ -20,6 +20,7 @@ module "list.dk"
         btn_cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners no-shadow"
         #$
         a(class="#<btn_cls>" href="#<@pim_calendar_new>" title="Crear calendario"){$"#<@ICON_PLUS_LG>"}
+        a(class="#<btn_cls>" href="#<@pim_events_type>" title="Tipos de eventos de calendario"){"Tipos de eventos"}
         #!
     }
     point buttons to printNavButtons
@@ -62,7 +63,7 @@ module "list.dk"
             for i = 0; i < data_length
             {
                 ref item = list.obj(data,i)
-                key = @@(item,"sys_pk")
+                key = @@(item,@pim_calendar_keyfield)
                 nombre = @@(item,"nombre")
                 propietario = @@(item,"username")
 
