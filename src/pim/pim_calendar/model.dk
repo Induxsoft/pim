@@ -7,7 +7,7 @@ module ":calendar"
     @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user"
 
     @list_query = "
-    SELECT
+    SELECT DISTINCT
         c.sys_pk,
         c.sys_guid,
         c.propietario,
@@ -18,6 +18,11 @@ module ":calendar"
         INNER JOIN tuser u ON c.propietario = u.sys_pk
     WHERE
         NOT IFNULL(c.sys_deleted,0)
+        AND (
+            c.propietario = @logged_user_pk
+            OR (select sys_pk from pim_calendar_per where calendar = c.sys_pk and guid = @logged_user_guid and not ifnull(es_grupo,0) limit 1) > 0
+            OR (select m.sys_pk from pim_calendar_per m inner join usergroup g on m.guid = g.sys_guid inner join user_usergroup_ ug on g.sys_pk = ug.groups where m.calendar = c.sys_pk and ug.users = @logged_user_pk and ifnull(m.es_grupo,0) limit 1) > 0
+        )
         AND (@search IS NULL OR c.nombre LIKE CONCAT('%',@search,'%'))
     LIMIT #<@default_max_rows>
     "
@@ -26,6 +31,7 @@ module ":calendar"
     SELECT
         sys_pk,
         sys_guid,
+        sys_recver,
         calendar,
         type,
         CONCAT('ID',sys_guid) AS id,
@@ -103,13 +109,20 @@ module ":calendar"
     //#region validateFields()
     function validateFields(&data)
     {
-        //code here...
+        using data
+        {
+            @"sys_user": @@(@http_context,"$session/user/uid")
+            @"sys_lastuser": @@(@http_context,"$session/user/uid")
+        }
     }
 
     //#region list()
     function list(&db,&params)
     {
         do dbr.apps.action.grant("TF10")
+
+        params<"logged_user_pk"> : GetPkUsr(db,@@(@http_context,"$session/user/uid"))
+        params<"logged_user_guid"> : GetGuidUsr(db,@@(@http_context,"$session/user/uid"))
 
         new data
         {

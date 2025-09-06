@@ -64,23 +64,48 @@ var calendar = {
             this.schedule = document.getElementById(this.schedule_id);
             const view = document.getElementById("view");
             const day = document.getElementById("day");
+            const btnAdd = document.getElementById("btn-add-event");
             const btnEdt = document.getElementById("btn-edt-event");
             const btnDel = document.getElementById("btn-del-event");
-            const btnEvtOk = document.getElementById("btn-event-ok");
+            const btnCancelEvent = document.getElementById("btn-cancel-event");
+            const btnCompleteEvent = document.getElementById("btn-complete-event");
 
             view.addEventListener('change', (e) => this.schedule.setAttribute("view",e.target.value));
             day.addEventListener('change', (e) => this.schedule.setAttribute("day",e.target.value));
+            btnAdd.addEventListener('click', (e) => this.addEvent());
             btnEdt.addEventListener('click', (e) => this.edtEvent());
             btnDel.addEventListener('click', (e) => this.delEvent());
-            btnEvtOk.addEventListener('click', (e) => this.addEvent());
+            btnCancelEvent.addEventListener('click', (e) => this.changeStatus(99));
+            btnCompleteEvent.addEventListener('click', (e) => this.changeStatus(1));
 
             this.modal.addEventListener('hidden.bs.modal', (e) => { this.form.reset() });
-            this.schedule.addEventListener('celldblclick', (e) => {
+            this.schedule.addEventListener('cellclick', (e) => {
                 this.form.elements['start'].value = e.detail.datetime;
                 tools.showModal(this.modal_id);
             });
             this.schedule.addEventListener('itemclick', (e) => {    
                 this.selected = e.detail;
+            });
+            this.schedule.addEventListener('itemmoved', (e) => this.changeStart(e));
+        },
+
+        changeStatus(newStatus)
+        {
+            this.edtEvent("change-status", {status:newStatus}, (res) => {});
+        },
+
+        changeStart(e)
+        {
+            const event = JSON.parse(JSON.stringify(e.detail.item));
+            this.selected = event;
+
+            this.edtEvent("change-start", {start:event.start}, (res) => {
+                if (!res)
+                {
+                    event.start = e.detail.from;
+                    this.schedule.save(event);
+                    this.selected = event;
+                }
             });
         },
 
@@ -117,13 +142,41 @@ var calendar = {
                     this.req_add_event = false;
                 },
                 "POST", false, true, "", true
-            )
+            );
         },
 
-        edtEvent()
+        edtEvent(action="",data=null,callback=null)
         {
-            if (!this.selected) return;
-            window.location.href = this.url_edt_event.replace("@_entity_id",this.selected[this.keyfield]);
+            if (this.req_edt_event || !this.selected) return;
+
+            let endpoint = this.url_edt_event.replace("@_entity_id",this.selected[this.keyfield]);
+            if (action == "")
+            {
+                window.location.href = endpoint;
+            }
+            else
+            {
+                endpoint += "?action="+action
+                this.req_edt_event = true;
+
+                InduxsoftCrudlModel.InvokeService(endpoint,data,
+                    (res) => {
+                        this.req_edt_event = false;
+                        callback(res);
+                    },
+                    (err) => {
+                        if (err.message) alert(err.message);
+                        else
+                        {
+                            alert("Ocurrio un error al intentar actualizar el evento.");
+                            console.error(err);
+                        }
+                        this.req_edt_event = false;
+                        callback(null);
+                    },
+                    "PATCH", false
+                );
+            }
         },
 
         delEvent()
@@ -149,7 +202,7 @@ var calendar = {
                     this.req_del_event = false;
                 },
                 "DELETE", false
-            )
+            );
         }
     }
 }

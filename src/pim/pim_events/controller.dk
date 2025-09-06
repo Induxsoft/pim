@@ -1,0 +1,30 @@
+#include "dkli.dkh"
+#!
+module "EventsController"
+{
+    point @list to events.list
+    point @read to events.read
+    point @blank to events.blank
+    point @create to events.create
+    point @update to events.update
+    point @delete to events.delete
+
+    switch @@(params,"$action")
+    {
+        case "change-status"
+        {
+            point @update to events.changeStatus
+            break
+        }
+        case "change-start"
+        {
+            point @update to events.changeStart
+            break
+        }
+        case "change-duration"
+        {
+            point @update to events.changeDuration
+            break
+        }
+    }
+}

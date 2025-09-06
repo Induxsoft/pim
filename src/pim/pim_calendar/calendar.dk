@@ -92,9 +92,11 @@ module "form.dk"
                 }
                 div(class="d-flex gap-2")
                 {
-                    button(class="btn btn-sm no-shadow" type="button" id="btn-add-event" "data-bs-toggle"="modal" "data-bs-target"="##<@modal_id>"){"Crear"}
+                    button(class="btn btn-sm no-shadow" type="button" "data-bs-toggle"="modal" "data-bs-target"="##<@modal_id>"){"Crear"}
                     button(class="btn btn-sm no-shadow" type="button" id="btn-edt-event"){"Editar"}
                     button(class="btn btn-sm no-shadow" type="button" id="btn-del-event"){"Eliminar"}
+                    button(class="btn btn-sm no-shadow" type="button" id="btn-cancel-event"){"Cancelado"}
+                    button(class="btn btn-sm no-shadow" type="button" id="btn-complete-event"){"Completado"}
                 }
             }
         }
@@ -140,8 +142,8 @@ module "form.dk"
                         }
                         div(class="modal-footer")
                         {
-                            button(type="button" class="btn btn-sm btn-primary rounded-0" id="btn-event-ok"){"Aceptar"}
-                            button(type="button" class="btn btn-sm btn-light rounded-0" id="btn-event-no" "data-bs-dismiss"="modal"){"Cancelar"}
+                            button(type="button" class="btn btn-sm btn-primary rounded-0" id="btn-add-event"){"Aceptar"}
+                            button(type="button" class="btn btn-sm btn-light rounded-0" "data-bs-dismiss"="modal"){"Cancelar"}
                         }
                     }
                 }

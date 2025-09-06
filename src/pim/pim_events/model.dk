@@ -1,6 +1,6 @@
 #include "dkli.dkh"
 #!
-module "model.dk"
+module ":events"
 {
     @table_name = "pim_events"
     @keyfield = @pim_events_keyfield
@@ -16,7 +16,7 @@ module "model.dk"
         sys_recver,
         calendar,
         type,
-        sys_guid AS id,
+        CONCAT('ID',sys_guid) AS id,
         caption,
         DATE_FORMAT(start,'%Y-%m-%d %H:%i') start,
         duration,
@@ -30,6 +30,48 @@ module "model.dk"
     "
     @calendar_query = "SELECT * FROM pim_calendar WHERE #<@pim_calendar_keyfield> = @calendar LIMIT 1"
 
+    //#region changeStatus()
+    function changeStatus(&db,&params,&data)
+    {
+        ref entity = entity.read(db,params)
+        using data
+        {
+            @"sys_recver": @@(entity,"#sys_recver")
+            @"calendar": @@(entity,"#calendar")
+            @"type": @@(entity,"#type")
+        }
+
+        return events.update(db,params,data)
+    }
+
+    //#region changeStart()
+    function changeStart(&db,&params,&data)
+    {
+        ref entity = entity.read(db,params)
+        using data
+        {
+            @"sys_recver": @@(entity,"#sys_recver")
+            @"calendar": @@(entity,"#calendar")
+            @"type": @@(entity,"#type")
+        }
+
+        return events.update(db,params,data)
+    }
+
+    //#region changeDuration()
+    function changeDuration(&db,&params,&data)
+    {
+        ref entity = entity.read(db,params)
+        using data
+        {
+            @"sys_recver": @@(entity,"#sys_recver")
+            @"calendar": @@(entity,"#calendar")
+            @"type": @@(entity,"#type")
+        }
+
+        return events.update(db,params,data)
+    }
+
     //#region prepareView()
     function prepareView(&db,&params,&data)
     {
@@ -39,13 +81,22 @@ module "model.dk"
     }
 
     //#region validateFields()
-    function validateFields(&data)
+    function validateFields(&db,&params,&data)
     {
         if @@(data,"#calendar") < 1 { do rise_error(511,"No se ha indicado el calendario al que pertenece el evento.") }
+        if @@(data,"#type") < 1 { do rise_error(512,"No se ha indicado el tipo del evento.") }
         using data
         {
-            @"important": parse.bool(@@(data,"$important"))
+            @"sys_user": @@(@http_context,"$session/user/uid")
+            @"sys_lastuser": @@(@http_context,"$session/user/uid")
         }
+        if field.exist(data,"important"){ data<"important"> : parse.bool(@@(data,"$important")) }
+        if field.exist(data,"status")
+        {}
+        if field.exist(data,"start")
+        {}
+        if field.exist(data,"duration")
+        {}
     }
 
     //#region list()
@@ -91,7 +142,7 @@ module "model.dk"
         do dbr.apps.action.pre("TF21")
         do dbr.begin(db)
 
-        do validateFields(data)
+        do validateFields(db,params,data)
         ref entity = entity.create(db,params,data)
 
         do dbr.apps.action.pos(entity)
@@ -114,7 +165,8 @@ module "model.dk"
         do dbr.apps.action.pre("TF22")
         do dbr.begin(db)
 
-        do validateFields(data)
+        if not(field.exist(data,@keyfield)) { data<@keyfield> : @@(params,"$_entity_id") }
+        do validateFields(db,params,data)
         ref entity = entity.update(db,params,data)
 
         do dbr.apps.action.pos(entity)
@@ -213,11 +265,4 @@ module "model.dk"
         do clear_exceptions()
         do rise_error(code,error)
     }
-
-    point @list to list
-    point @read to read
-    point @blank to blank
-    point @create to create
-    point @update to update
-    point @delete to delete
 }
