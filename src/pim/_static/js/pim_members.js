@@ -1,10 +1,11 @@
 const members = {
-    tableId:"", table:null, curtype:0, ikmember:null,
-    url_save:"", url_delete:"", keyfield:"",
+    table_id:"", url_save:"", url_delete:"", url_exit:"", keyfield:"",
+    params:null, table:null, curtype:0, ikmember:null,
 
     init()
     {
-        this.table = document.getElementById(this.tableId);
+        this.url_exit = this.urlReferrer();
+        this.table = document.getElementById(this.table_id);
         const btnSave = document.getElementById("btn-save");
         const type = document.getElementById("type");
         this.ikmember = document.getElementById("member");
@@ -23,7 +24,18 @@ const members = {
         btnAdd.addEventListener("click", () => this.addUsr());
         btnDel.addEventListener("click", () => this.delUsr());
 
+        // window.addEventListener('beforeunload', (e) => sessionStorage.clear());
+
         tools.trigger(type,"change");
+    },
+
+    urlReferrer()
+    {
+        const referrer = document.referrer;
+        const href = window.location.href;
+
+        if (referrer != href) sessionStorage.setItem('referrer',referrer);
+        return sessionStorage.getItem('referrer');
     },
 
     filterData(){return (this.table?.DataArray??[]).filter((row) => { return Object.keys(row??{}).length >= this.table.Columns.length });},
@@ -41,6 +53,7 @@ const members = {
             type: (this.curtype==0) ? "Usuario" : "Grupo",
             id: data.id,
             name: data.name,
+            calendar: this.params?.calendar,
             es_grupo: this.curtype,
             guid: data.guid,
             crear: "No",
@@ -104,6 +117,8 @@ const members = {
         InduxsoftCrudlModel.InvokeService(this.url_save,payload,
             (resp) => {
                 tools.V12FormBarDisableControls(false);
+                sessionStorage.clear()
+                window.location.href = this.url_exit;
             },
             (error) => {
                 if (error.message) alert(error.message);

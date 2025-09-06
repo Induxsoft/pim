@@ -5,9 +5,9 @@
     border: 1px solid #DDD;
     text-decoration: none;
     color: black;
+    /* display: flex;
     align-items: center; 
-    justify-content: center;
-    display: flex;
+    justify-content: center; */
 }
 .calendario-item:hover {
     box-shadow: 3px 3px 9px 0 #DDD;

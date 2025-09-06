@@ -17,4 +17,4 @@ TF33,Quitar miembro de calendario,Quitar,,"javascript:InduxsoftCrudlModel.Delete
 TF40,Tipos de eventos de calendario,Tipos de eventos,,/!/pim/events-type/,0,pim.evtypes,DET0AF,0,shortcut
 TF41,Crear tipo de eventos de calendario,Agregar,,/!/pim/events-type/_new/,0,pim.evtypes,DET0AF,0,action
 TF42,Editar tipo de evento de calendario,Editar,,/!/pim/events-type/@_src_context_item_id/,0,pim.evtypes,DET0AF,1,action
-TF43,Eliminar tipo de evento de calendario,Quitar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,pim.evtypes,DET0AF,1,action
+TF43,Eliminar tipo de evento de calendario,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,pim.evtypes,DET0AF,1,action

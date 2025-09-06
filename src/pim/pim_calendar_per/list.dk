@@ -116,10 +116,11 @@ module "form.dk"
                 script(type="text/javascript")
                 {$'
                     document.addEventListener("DOMContentLoaded", () => {
-                        members.tableId = "#<@table_id>";
+                        members.table_id = "#<@table_id>";
                         members.url_save = "#<@pim_members_new>";
                         members.url_delete = "#<@pim_members_edt>";
                         members.keyfield = "#<@pim_members_keyfield>";
+                        members.params = #<to.json(@("&parameters"))>;
                         members.init();
                         // Script injection
                         #<@@(@crud_context,"script")>

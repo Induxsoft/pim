@@ -17,6 +17,9 @@ module "form.dk"
 	@_entities_type = @("$parameters/_entities_type")
 	@_entity_id = @("$parameters/_entity_id")
 	@is_new = (@_entity_id == "_new")
+    @calendar_pk = @@(calendar,"#sys_pk")
+    @form_id = "form-event"
+    @modal_id = "modal-event"
     @schedule_id = ""+@_entities_type
 
     breaks = @@(calendar,"$breaks")
@@ -89,7 +92,7 @@ module "form.dk"
                 }
                 div(class="d-flex gap-2")
                 {
-                    button(class="btn btn-sm no-shadow" type="button" id="btn-add-event"){"Crear"}
+                    button(class="btn btn-sm no-shadow" type="button" id="btn-add-event" "data-bs-toggle"="modal" "data-bs-target"="##<@modal_id>"){"Crear"}
                     button(class="btn btn-sm no-shadow" type="button" id="btn-edt-event"){"Editar"}
                     button(class="btn btn-sm no-shadow" type="button" id="btn-del-event"){"Eliminar"}
                 }
@@ -116,7 +119,33 @@ module "form.dk"
                 "min-duration"="#<min_duration>"
                 "max-duration"="#<max_duration>"
                 events='#<to.json(events)>'
-            )
+            ){""}
+
+            div(class="modal fade" id="#<@modal_id>" tabindex="-1" "data-bs-backdrop"="false") // "aria-hidden"="true"
+            {
+                div(class="modal-dialog modal-lg modal-dialog-scrollable") // modal-dialog-centered
+                {
+                    div(class="modal-content rounded-0 p-0 border-0 shadow")
+                    {
+                        div(class="modal-header p-3")
+                        {
+                            h5(class="modal-title"){"Nuevo evento"}
+                            button(class="btn-close btn-sm" type="button" "data-bs-dismiss"="modal" "aria-label"="Close"){""}
+                        }
+                        div(class="modal-body px-4 py-2 bg-white")
+                        {
+                            ##
+                            #include "pim/pim_events/frm.dk"
+                            ##
+                        }
+                        div(class="modal-footer")
+                        {
+                            button(type="button" class="btn btn-sm btn-primary rounded-0" id="btn-event-ok"){"Aceptar"}
+                            button(type="button" class="btn btn-sm btn-light rounded-0" id="btn-event-no" "data-bs-dismiss"="modal"){"Cancelar"}
+                        }
+                    }
+                }
+            }
         }
         // Resúmenes y datos al pie
         section(id="bottom_area")
@@ -129,7 +158,14 @@ module "form.dk"
                 script(type="text/javascript")
                 {$'
                     document.addEventListener("DOMContentLoaded", () => {
-                        calendar.schedule.scheduleId = "#<@schedule_id>";
+                        calendar.schedule.form_id = "#<@form_id>";
+                        calendar.schedule.modal_id = "#<@modal_id>";
+                        calendar.schedule.schedule_id = "#<@schedule_id>";
+                        calendar.schedule.keyfield = "#<@pim_events_keyfield>";
+                        calendar.schedule.url_add_event = "#<@pim_events_new>";
+                        calendar.schedule.url_edt_event = "#<@pim_events_edt>";
+                        calendar.schedule.url_del_event = "#<@pim_events_del>";
+                        calendar.schedule.params = #<to.json(@("&parameters"))>;
                         calendar.schedule.init();
                         // Script injection
                         #<@@(@crud_context,"script")>

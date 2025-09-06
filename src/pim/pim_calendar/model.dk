@@ -6,8 +6,41 @@ module ":calendar"
     @keyfield = @pim_calendar_keyfield
     @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user"
 
-    @list_query = "SELECT * FROM #<@table_name> WHERE NOT IFNULL(sys_deleted,0) LIMIT #<@default_max_rows>"
+    @list_query = "
+    SELECT
+        c.sys_pk,
+        c.sys_guid,
+        c.propietario,
+        c.nombre,
+        u.userid,
+        u.username
+    FROM #<@table_name> c
+        INNER JOIN tuser u ON c.propietario = u.sys_pk
+    WHERE
+        NOT IFNULL(c.sys_deleted,0)
+        AND (@search IS NULL OR c.nombre LIKE CONCAT('%',@search,'%'))
+    LIMIT #<@default_max_rows>
+    "
     @read_query = "SELECT * FROM #<@table_name> WHERE #<@keyfield> = @_entity_id LIMIT 1"
+    @events_query = "
+    SELECT
+        sys_pk,
+        sys_guid,
+        calendar,
+        type,
+        CONCAT('ID',sys_guid) AS id,
+        caption,
+        DATE_FORMAT(start,'%Y-%m-%d %H:%i') start,
+        duration,
+        backcolor,
+        color,
+        status,
+        important
+    FROM pim_events
+    WHERE
+        NOT IFNULL(sys_deleted,0)
+        AND calendar = @_entity_id
+    "
 
     function searchUsers(&db,&params)
     {
@@ -47,18 +80,24 @@ module ":calendar"
     function prepareView(&db,&params,&data)
     {
         is_new = (@@(params,"$_entity_id") == "_new")
-        propietario = 0
         
-        if field.exist(data,"form")
+        if @@(params,"$action") == "view-calendar"
         {
-            propietario = @@(data,"#form/propietario")
+            data<"events*"> : dbr.list(db,@events_query,params)
         }
-        else if field.exist(data,"entity")
+        else
         {
-            propietario = @@(data,"#entity/propietario")
+            propietario = 0
+            if field.exist(data,"form")
+            {
+                propietario = @@(data,"#form/propietario")
+            }
+            else if field.exist(data,"entity")
+            {
+                propietario = @@(data,"#entity/propietario")
+            }
+            data<"propietario*"> : getOwner(db,propietario)
         }
-
-        data<"propietario*"> : getOwner(db,propietario)
     }
 
     //#region validateFields()

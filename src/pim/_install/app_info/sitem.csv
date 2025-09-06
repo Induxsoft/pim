@@ -5,6 +5,7 @@ TF10,Calendario,pim.calendar
 TF11,Crear calendario,pim.calendar
 TF12,Editar calendario,pim.calendar
 TF13,Eliminar calendario,pim.calendar
+TF14,Cambiar propietario,pim.calendar
 pim.events,Eventos de calendario,pim
 TF20,Eventos de calendario,pim.events
 TF21,Crear evento de calendario,pim.events

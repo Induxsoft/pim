@@ -11,6 +11,7 @@ module ":members"
     SELECT
         m.sys_pk,
         m.sys_guid,
+        m.sys_recver,
         m.calendar,
         m.es_grupo,
         m.guid,
@@ -24,8 +25,8 @@ module ":members"
         LEFT JOIN tuser u ON m.guid = u.sys_guid
         LEFT JOIN usergroup g ON m.guid = g.sys_guid
     WHERE
-        NOT IFNULL(sys_deleted,0)
-        AND calendar = @calendar
+        NOT IFNULL(m.sys_deleted,0)
+        AND m.calendar = @calendar
     LIMIT #<@default_max_rows>
     "
     @read_query = "SELECT * FROM #<@table_name> WHERE #<@keyfield> = @_entity_id LIMIT 1"
@@ -122,6 +123,7 @@ module ":members"
         do dbr.begin(db)
 
         do validateFields(data)
+        params<"_entity_id"> : @@(data,"$"+@keyfield)
         ref entity = entity.update(db,params,data)
 
         do dbr.apps.action.pos(entity)

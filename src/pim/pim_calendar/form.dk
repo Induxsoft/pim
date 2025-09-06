@@ -199,8 +199,9 @@ module "form.dk"
                         }
                         div(class="col-12" title="Días no laborales")
                         {
-                            label(class="form-label" "for"="weekend"){"Días de descanso:"}
-                            select(class="" name="weekend" id="weekend" "data-default-values"="#<fd('weekend','tx',entity)>" multiple=""){""}
+                            label(class="form-label" "for"="_weekend"){"Días de descanso:"}
+                            select(id="_weekend" multiple=""){""}
+                            input(type="hidden" name="weekend" value="#<fd('weekend','tx',entity)>" id="weekend")
                         }
                         div(class="col-12" title="Días de descanso")
                         {

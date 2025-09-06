@@ -1,0 +1,76 @@
+#include "dkli.dkh"
+#include "dbr.dkh"
+#!
+if not(isset("entity")) { ref entity=record.create() }
+
+new sel_type
+{
+    @"id": "type"
+    @"value_field": "sys_pk"
+    @"text_field": "nombre"
+    @"selected": fd("type","nm",entity)
+    @"datatable*": dbr.list(@("&database"),"select * from pim_events_type where not ifnull(sys_deleted,0)",@null)
+    member "attributes"
+    {
+        @"name": "type"
+        @"class": "form-select rounded-0"
+        @"required": ""
+        @"onchange": "backcolor.value=this.selectedOptions[0].dataset.backcolor; color.value=this.selectedOptions[0].dataset.color;"
+    }
+    member "attr_options"
+    {
+        @"data-backcolor": "#<@@(row,'$backcolor')>"
+        @"data-color": "#<@@(row,'$color')>"
+    }
+}
+#$
+form(class="px-1" action="./" method="POST" id="#<@form_id>")
+{
+    input(type="hidden" name="sys_pk" value="#<@@(entity,'#sys_pk')>")
+    input(type="hidden" name="sys_recver" value="#<@@(entity,'#sys_recver')>")
+    input(type="hidden" name="calendar" value="#<@calendar_pk>")
+
+    div(class="row gx-1 gx-sm-2 gx-md-3 gx-lg-4")
+    {
+        div(class="col-12 col-sm-4 col-md-3")
+        {
+            label(class="form-label" "for"="type"){"Tipo:"}
+            ##
+            do uie.dbSelect(sel_type)
+            ##
+        }
+        div(class="col-12")
+        {
+            label(class="form-label" "for"="caption"){"Descripción:"}
+            textarea(class="form-control rounded-0" name="caption" id="caption" rows="3" required=""){"#<fd('caption','tx',entity)>"}
+        }
+        div(class="col-12 py-1")
+        {
+            div(class="form-check form-check-inline")
+            {
+                input(class="form-check-input" type="checkbox" name="important" id="important" "#<fd('important','ch',entity)>"="")
+                label(class="form-check-label" "for"="important"){"¡Importante!"}
+            }
+        }
+        div(class="col-12 col-sm-4 col-md-3")
+        {
+            label(class="form-label" "for"="start"){"Inicio:"}
+            input(class="form-control rounded-0" type="datetime-local" name="start" value="#<fd('start','dtm',entity)>" id="start" required="")
+        }
+        div(class="col-6 col-sm-4 col-md-3")
+        {
+            label(class="form-label" "for"="duration"){"Duración:"}
+            input(class="form-control rounded-0" type="number" name="duration" value="#<fd('duration','nm',entity)>" id="duration" required="")
+        }
+        div(class="col-3 col-sm-2 col-md-1")
+        {
+            label(class="form-label" "for"="backcolor"){"Fondo:"}
+            input(class="form-control form-control-color rounded-0" type="color" name="backcolor" value="#<fd('backcolor','tx',entity)>" id="backcolor")
+        }
+        div(class="col-3 col-sm-2 col-md-1")
+        {
+            label(class="form-label" "for"="color"){"Texto:"}
+            input(class="form-control form-control-color rounded-0" type="color" name="color" value="#<fd('color','tx',entity)>" id="color")
+        }
+    }
+}

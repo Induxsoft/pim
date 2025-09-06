@@ -9,7 +9,25 @@ module "model.dk"
     // @update_alias_fields = ""
 
     @list_query = "SELECT * FROM #<@table_name> WHERE NOT IFNULL(sys_deleted,0) LIMIT #<@default_max_rows>"
-    @read_query = "SELECT * FROM #<@table_name> WHERE #<@keyfield> = @_entity_id LIMIT 1"
+    @read_query = "
+    SELECT
+        sys_pk,
+        sys_guid,
+        sys_recver,
+        calendar,
+        type,
+        sys_guid AS id,
+        caption,
+        DATE_FORMAT(start,'%Y-%m-%d %H:%i') start,
+        duration,
+        backcolor,
+        color,
+        status,
+        important
+    FROM #<@table_name>
+    WHERE #<@keyfield> = @_entity_id
+    LIMIT 1
+    "
     @calendar_query = "SELECT * FROM pim_calendar WHERE #<@pim_calendar_keyfield> = @calendar LIMIT 1"
 
     //#region prepareView()
@@ -23,7 +41,11 @@ module "model.dk"
     //#region validateFields()
     function validateFields(&data)
     {
-        //code here...
+        if @@(data,"#calendar") < 1 { do rise_error(511,"No se ha indicado el calendario al que pertenece el evento.") }
+        using data
+        {
+            @"important": parse.bool(@@(data,"$important"))
+        }
     }
 
     //#region list()
@@ -76,6 +98,8 @@ module "model.dk"
         do dbr.commit(db)
         do dbr.apps.action.ext(entity)
 
+        @url_redir = replace(@pim_calendar_see,"@_entity_id",@@(entity,"$calendar"))
+
         return entity
 
         exception{ do catch(db,params,data) }
@@ -96,6 +120,8 @@ module "model.dk"
         do dbr.apps.action.pos(entity)
         do dbr.commit(db)
         do dbr.apps.action.ext(entity)
+
+        @url_redir = replace(@pim_calendar_see,"@_entity_id",@@(entity,"$calendar"))
 
         return entity
 

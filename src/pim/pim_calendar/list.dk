@@ -58,6 +58,7 @@ module "list.dk"
         // Contenido principal
         section(id="work_area")
         {
+            link(href="#<@css_main>" rel="stylesheet")
             link(href="#<@css_pim_calendar>" rel="stylesheet")
             #!
             for i = 0; i < data_length
@@ -65,7 +66,7 @@ module "list.dk"
                 ref item = list.obj(data,i)
                 key = @@(item,@pim_calendar_keyfield)
                 nombre = @@(item,"nombre")
-                propietario = @@(item,"username")
+                username = @@(item,"username")
 
                 edit_url = replace(@pim_calendar_edt,"@_entity_id",key)
                 view_url = replace(@pim_calendar_see,"@_entity_id",key)
@@ -76,15 +77,18 @@ module "list.dk"
                 {
                     div(class="col-auto")
                     {
-                        a(class="calendario-item" href="#<view_url>")
+                        div(class="card")
                         {
-                            div(class="card")
+                            a(class="card-body text-center calendario-item" href="#<view_url>" title="")
                             {
-                                div(class="card-body text-center")
-                                {
-                                    h5(class="card-title text-dark"){"#<nombre>"}
-                                    h6(class="card-subtitle text-muted"){"#<propietario>"}
-                                }
+                                h5(class="card-title text-dark mb-0"){"#<nombre>"}
+                                small(class="card-subtitle text-muted"){"#<username>"}
+                            }
+                            div(class="card-footer text-end bg-white py-0")
+                            {
+                                a(class="btn btn-sm no-shadow" href="#<usrs_url>"){$"#<@ICON_PEOPLE>"}
+                                a(class="btn btn-sm no-shadow" href="#<edit_url>"){$"#<@ICON_EDIT>"}
+                                button(class="btn btn-sm no-shadow" onclick="InduxsoftCrudlModel.Delete('#<key>')"){$"#<@ICON_TRASH>"}
                             }
                         }
                     }
