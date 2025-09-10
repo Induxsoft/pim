@@ -60,6 +60,9 @@ module "list.dk"
         {
             link(href="#<@css_main>" rel="stylesheet")
             link(href="#<@css_pim_calendar>" rel="stylesheet")
+            
+            div(class="row gx-2 gy-2 p-2" id="calendarios")
+            {
             #!
             for i = 0; i < data_length
             {
@@ -73,23 +76,20 @@ module "list.dk"
                 usrs_url = replace(@pim_calendar_per,"@_entity_id",key)
 
                 #$
-                div(class="row gx-2 gy-2 p-2" id="calendarios")
+                div(class="col-auto")
                 {
-                    div(class="col-auto")
+                    div(class="card")
                     {
-                        div(class="card")
+                        a(class="card-body text-center calendario-item" href="#<view_url>" title="")
                         {
-                            a(class="card-body text-center calendario-item" href="#<view_url>" title="")
-                            {
-                                h5(class="card-title text-dark mb-0"){"#<nombre>"}
-                                small(class="card-subtitle text-muted"){"#<username>"}
-                            }
-                            div(class="card-footer text-end bg-white py-0")
-                            {
-                                a(class="btn btn-sm no-shadow" href="#<usrs_url>"){$"#<@ICON_PEOPLE>"}
-                                a(class="btn btn-sm no-shadow" href="#<edit_url>"){$"#<@ICON_EDIT>"}
-                                button(class="btn btn-sm no-shadow" onclick="InduxsoftCrudlModel.Delete('#<key>')"){$"#<@ICON_TRASH>"}
-                            }
+                            h5(class="card-title text-dark mb-0"){"#<nombre>"}
+                            small(class="card-subtitle text-muted"){"#<username>"}
+                        }
+                        div(class="card-footer text-end bg-white py-0")
+                        {
+                            a(class="btn btn-sm no-shadow" href="#<usrs_url>"){$"#<@ICON_PEOPLE>"}
+                            a(class="btn btn-sm no-shadow" href="#<edit_url>"){$"#<@ICON_EDIT>"}
+                            button(class="btn btn-sm no-shadow" onclick="InduxsoftCrudlModel.Delete('#<key>')"){$"#<@ICON_TRASH>"}
                         }
                     }
                 }
@@ -100,6 +100,7 @@ module "list.dk"
                 #$ div(style="background-color:#F5F5F5; padding: 10rem 0; text-align:center;"){ h6{"Sin resultados"} }
             }
             #$
+            }
         }
         // Resúmenes y datos al pie
         section(id="bottom_area")

@@ -87,13 +87,16 @@ var calendar = {
                 this.selected = e.detail;
             });
             this.schedule.addEventListener('itemmoved', (e) => this.changeStart(e));
+            this.schedule.addEventListener('itemresized', (e) => this.changeDuration(e));
+            this.schedule.addEventListener('itemcreated', (e) => {
+                console.log(e.detail.element)
+            });
         },
 
         changeStatus(newStatus)
         {
             this.edtEvent("change-status", {status:newStatus}, (res) => {});
         },
-
         changeStart(e)
         {
             const event = JSON.parse(JSON.stringify(e.detail.item));
@@ -103,6 +106,20 @@ var calendar = {
                 if (!res)
                 {
                     event.start = e.detail.from;
+                    this.schedule.save(event);
+                    this.selected = event;
+                }
+            });
+        },
+        changeDuration(e)
+        {
+            const event = JSON.parse(JSON.stringify(e.detail.item));
+            this.selected = event;
+
+            this.edtEvent("change-duration", {duration:event.duration}, (res) => {
+                if (!res)
+                {
+                    event.duration = e.detail.oldDuration;
                     this.schedule.save(event);
                     this.selected = event;
                 }
