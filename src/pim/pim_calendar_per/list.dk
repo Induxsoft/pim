@@ -28,8 +28,9 @@ module "form.dk"
     function printNavButtons()
     {
         cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners no-shadow"
-        edit_url = replace(@pim_calendar_edt,"@_entity_id",@_entity_id)
-        view_url = replace(@pim_calendar_see,"@_entity_id",@_entity_id)
+        calendar_id = @(ftext("./calendar/#<@pim_calendar_keyfield>"))
+        edit_url = replace(@pim_calendar_edt, "@_entity_id", calendar_id)
+        view_url = replace(@pim_calendar_see, "@_entity_id", calendar_id)
         #$
         button(class="#<cls>" type="button" id="btn-save" title="Guardar"){$"#<@ICON_SAVE>"}
         a(class="#<cls>" href="#<edit_url>" title="Editar"){$"#<@ICON_EDIT>"}

@@ -78,6 +78,90 @@ module ":events"
         //code here...
     }
 
+    //#region triggerEventAction()
+    function triggerEventAction(&db,action_id)
+    {
+        //Establecer @@_action_context si aun no está establecida
+        if not(isset("@@_action_context")){ do dbr.apps.action.create_context(action_id) }
+        //Lanzar evento
+        ref evdata = ifnull(@@(@@_action_context,"&event_data"), @@(@@_action_context,"&context"))
+        sender_id = @@(@@_action_context,"$element")
+        event_id = "pre_"+@@(@@_action_context,"$action")
+
+        do dbr.events.fire(db,sender_id,event_id,evdata)
+    }
+
+    //#region validateEventAction()
+    function validateEventAction(&db,calendar_pk)
+    {
+        _operation = @@(@http_context,"$request/get/_operation")
+        new params
+        {
+            @"calendar": calendar_pk
+            @"logged_user_pk": GetPkUsr(db,@@(@http_context,"$session/user/uid"))
+            @"logged_user_guid": GetGuidUsr(db,@@(@http_context,"$session/user/uid"))
+        }
+
+        new privsId
+        {
+            @"create": "TF21"
+            @"update": "TF22"
+            @"delete": "TF23"
+        }
+        action_id = @@(privsId,_operation)
+
+        is_owner = dbr.num(db,"select sys_pk from pim_calendar where sys_pk = @calendar and propietario = @logged_user_pk",params)
+        if is_owner
+        {
+            do triggerEventAction(db,action_id)
+            return
+        }
+
+        new evActions
+        {
+            @"create": "crear"
+            @"update": "editar"
+            @"delete": "eliminar"
+        }
+        action = @@(evActions,_operation)
+
+        authorized_member = dbr.num(db,ftext("
+            select sys_pk
+            from pim_calendar_per
+            where
+                calendar = @calendar
+                and guid = @logged_user_guid
+                and not ifnull(es_grupo,0)
+                and ifnull(#<action>,0)
+            limit 1
+        "),params)
+        if authorized_member
+        {
+            do triggerEventAction(db,action_id)
+            return
+        }
+
+        authorized_group = dbr.num(db,ftext("
+            select m.sys_pk
+            from pim_calendar_per m
+                inner join usergroup g on m.guid = g.sys_guid
+                inner join user_usergroup_ ug on g.sys_pk = ug.groups
+            where
+                m.calendar = @calendar
+                and ug.users = @logged_user_pk
+                and ifnull(m.es_grupo,0)
+                and ifnull(#<action>,0)
+            limit 1
+        "),params)
+        if authorized_group
+        {
+            do triggerEventAction(db,action_id)
+            return
+        }
+
+        do dbr.apps.action.pre(action_id+":DET098:"+str(calendar_pk))
+    }
+
     //#region validateFields()
     function validateFields(&db,&params,&data)
     {
@@ -103,15 +187,25 @@ module ":events"
         }
         if field.exist(data,"start")
         {
-            start_hour = parse.num(date_str(str2dt(@@(data,"$start")),"HH.mm"))
-            in_range = dbr.num(db,ftext("SELECT (#<start_hour> BETWEEN start_lab_hour AND end_lab_hour) FROM pim_calendar WHERE sys_pk = @calendar"),data)
-            if not(in_range) { do rise_error(514,"La hora de inicio no se encuentra dentro del rango establecido en el calendario.") }
+            if is_new || field.exist(data,"duration") { duration = trun(@@(data,"#duration")) }
+            else { duration = dbr.num(db,ftext("SELECT duration FROM #<@table_name> WHERE #<@keyfield> = @_entity_id"),params) }
+
+            in_range = dbr.num(db,ftext("
+                SELECT
+                    (DATE_FORMAT(@start,'%H.%i') BETWEEN start_lab_hour AND end_lab_hour) AND
+                    (DATE_FORMAT(DATE_ADD(@start,INTERVAL #<duration> MINUTE),'%H.%i') BETWEEN start_lab_hour AND end_lab_hour)
+                    AS in_range
+                FROM pim_calendar
+                WHERE sys_pk = @calendar
+            "),data)
+            if not(in_range) { do rise_error(514,"La hora de inicio (+ duración) se encuentra fuera del rango establecido en el calendario.") }
         }
         if field.exist(data,"duration")
         {
-            data<"duration"> : @@(data,"#duration")
+            data<"duration"> : trun(@@(data,"#duration"))
+
             in_range = dbr.num(db,"SELECT (@duration BETWEEN min_duration AND max_duration) FROM pim_calendar WHERE sys_pk = @calendar",data)
-            if not(in_range) { do rise_error(515,"La duración no se encuentra dentro del rango establecido en el calendario.") }
+            if not(in_range) { do rise_error(515,"La duración se encuentra fuera del rango establecido en el calendario.") }
         }
         if is_new { data<"status"> : @stt_event_pendiente }
     }
@@ -155,9 +249,8 @@ module ":events"
     {
         @use_transaction = @false
         @just_read_entity = @true
-        
-        action = "TF21:DET098:"+@@(data,"$calendar")
-        do dbr.apps.action.pre(action)
+
+        do validateEventAction(db,@@(data,"#calendar"))
         do dbr.begin(db)
 
         do validateFields(db,params,data)
@@ -179,9 +272,8 @@ module ":events"
     {
         @use_transaction = @false
         @just_read_entity = @true
-        
-        action = "TF22:DET098:"+@@(data,"$calendar")
-        do dbr.apps.action.pre(action)
+
+        do validateEventAction(db,@@(data,"#calendar"))
         do dbr.begin(db)
 
         if not(field.exist(data,@keyfield)) { data<@keyfield> : @@(params,"$_entity_id") }
@@ -203,9 +295,10 @@ module ":events"
     function delete(&db,&params)
     {
         @use_transaction = @false
+        @just_read_entity = @true
         
-        action = "TF23:DET098:"+dbr.str(db,ftext("select calendar from #<@table_name> where #<@keyfield> = @_entity_id"),params)
-        do dbr.apps.action.pre(action)
+        calendar_pk = dbr.num(db,ftext("select calendar from #<@table_name> where #<@keyfield> = @_entity_id"),params)
+        do validateEventAction(db,calendar_pk)
 
         ref entity = @null
         deleted = @false

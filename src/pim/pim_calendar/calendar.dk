@@ -173,7 +173,7 @@ module "form.dk"
                         calendar.schedule.schedule.renderEvents();
                         
                         // Script injection
-                        #<@@(@crud_context,"script")>
+                        #<@@(@crud_context,"$script")>
                     });
                 '}
             }
