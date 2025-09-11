@@ -78,6 +78,10 @@ var calendar = {
             btnCancelEvent.addEventListener('click', (e) => this.changeStatus(99));
             btnCompleteEvent.addEventListener('click', (e) => this.changeStatus(1));
 
+            this.modal.addEventListener('show.bs.modal', (e) => {
+                this.form.elements['duration'].value = this.schedule.min_duration;
+                tools.trigger('#type','change');
+            });
             this.modal.addEventListener('hidden.bs.modal', (e) => { this.form.reset() });
             this.schedule.addEventListener('cellclick', (e) => {
                 this.form.elements['start'].value = e.detail.datetime;
@@ -88,14 +92,15 @@ var calendar = {
             });
             this.schedule.addEventListener('itemmoved', (e) => this.changeStart(e));
             this.schedule.addEventListener('itemresized', (e) => this.changeDuration(e));
-            this.schedule.addEventListener('itemcreated', (e) => {
-                console.log(e.detail.element)
-            });
+            this.schedule.addEventListener('itemcreated', (e) => this.setEventStyles(e.detail.item,e.detail.element));
+            this.schedule.addEventListener('itemupdated', (e) => this.setEventStyles(e.detail.newItem,e.detail.newElement));
         },
 
         changeStatus(newStatus)
         {
-            this.edtEvent("change-status", {status:newStatus}, (res) => {});
+            this.edtEvent("change-status", {status:newStatus}, (res) => {
+                this.schedule.renderEvent(res);
+            });
         },
         changeStart(e)
         {
@@ -136,6 +141,26 @@ var calendar = {
                 const [key, value] = entry;
                 if (fields[key]) fields[key].value = value;
             });
+        },
+        setEventStyles(data,element)
+        {
+            const content = element.querySelector('.content');
+            if (data.important)
+            {
+                content.style.cssText = `font-weight:bold;`;
+            }
+            switch (data.status) {
+                case 0:
+                    break;
+                case 1:
+                    content.textContent = '[Hecho] '+data.caption;
+                    content.style.cssText += `text-decoration:line-through;`;
+                    break;
+                case 99:
+                    content.textContent = '[Cancelado] '+data.caption;
+                    content.style.cssText += `text-decoration:line-through;`;
+                    break;
+            }
         },
 
         addEvent()

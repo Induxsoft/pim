@@ -5,8 +5,6 @@ module ":events"
     @table_name = "pim_events"
     @keyfield = @pim_events_keyfield
     @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user,calendar"
-    // @create_alias_fields = ""
-    // @update_alias_fields = ""
 
     @list_query = "SELECT * FROM #<@table_name> WHERE NOT IFNULL(sys_deleted,0) LIMIT #<@default_max_rows>"
     @read_query = "
@@ -83,20 +81,39 @@ module ":events"
     //#region validateFields()
     function validateFields(&db,&params,&data)
     {
-        if @@(data,"#calendar") < 1 { do rise_error(511,"No se ha indicado el calendario al que pertenece el evento.") }
-        if @@(data,"#type") < 1 { do rise_error(512,"No se ha indicado el tipo del evento.") }
+        is_new = (@@(params,"$_entity_id") == "_new")
+        calendar = @@(data,"#calendar")
+        type = @@(data,"#type")
+
+        if calendar < 1 { do rise_error(511,"No se ha indicado el calendario al que pertenece el evento.") }
+        if type < 1 { do rise_error(512,"No se ha indicado el tipo del evento.") }
         using data
         {
             @"sys_user": @@(@http_context,"$session/user/uid")
             @"sys_lastuser": @@(@http_context,"$session/user/uid")
+            @"calendar": calendar
+            @"type": type
         }
+
         if field.exist(data,"important"){ data<"important"> : parse.bool(@@(data,"$important")) }
         if field.exist(data,"status")
-        {}
+        {
+            allow = dbr.num(db,ftext("SELECT `status` NOT IN (#<@stt_event_hecho>,#<@stt_event_cancelado>) FROM #<@table_name> WHERE #<@keyfield> = @_entity_id"),params)
+            if not(allow) { do rise_error(513,"No es posible cambiar el estado del evento.") }
+        }
         if field.exist(data,"start")
-        {}
+        {
+            start_hour = parse.num(date_str(str2dt(@@(data,"$start")),"HH.mm"))
+            in_range = dbr.num(db,ftext("SELECT (#<start_hour> BETWEEN start_lab_hour AND end_lab_hour) FROM pim_calendar WHERE sys_pk = @calendar"),data)
+            if not(in_range) { do rise_error(514,"La hora de inicio no se encuentra dentro del rango establecido en el calendario.") }
+        }
         if field.exist(data,"duration")
-        {}
+        {
+            data<"duration"> : @@(data,"#duration")
+            in_range = dbr.num(db,"SELECT (@duration BETWEEN min_duration AND max_duration) FROM pim_calendar WHERE sys_pk = @calendar",data)
+            if not(in_range) { do rise_error(515,"La duración no se encuentra dentro del rango establecido en el calendario.") }
+        }
+        if is_new { data<"status"> : @stt_event_pendiente }
     }
 
     //#region list()
@@ -139,7 +156,8 @@ module ":events"
         @use_transaction = @false
         @just_read_entity = @true
         
-        do dbr.apps.action.pre("TF21")
+        action = "TF21:DET098:"+@@(data,"$calendar")
+        do dbr.apps.action.pre(action)
         do dbr.begin(db)
 
         do validateFields(db,params,data)
@@ -162,7 +180,8 @@ module ":events"
         @use_transaction = @false
         @just_read_entity = @true
         
-        do dbr.apps.action.pre("TF22")
+        action = "TF22:DET098:"+@@(data,"$calendar")
+        do dbr.apps.action.pre(action)
         do dbr.begin(db)
 
         if not(field.exist(data,@keyfield)) { data<@keyfield> : @@(params,"$_entity_id") }
@@ -185,7 +204,8 @@ module ":events"
     {
         @use_transaction = @false
         
-        do dbr.apps.action.pre("TF23")
+        action = "TF23:DET098:"+dbr.str(db,ftext("select calendar from #<@table_name> where #<@keyfield> = @_entity_id"),params)
+        do dbr.apps.action.pre(action)
 
         ref entity = @null
         deleted = @false

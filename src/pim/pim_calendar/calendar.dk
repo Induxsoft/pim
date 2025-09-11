@@ -120,7 +120,6 @@ module "form.dk"
                 increment="#<increment>"
                 "min-duration"="#<min_duration>"
                 "max-duration"="#<max_duration>"
-                events='#<to.json(events)>'
             ){""}
 
             div(class="modal fade" id="#<@modal_id>" tabindex="-1" "data-bs-backdrop"="false") // "aria-hidden"="true"
@@ -169,6 +168,10 @@ module "form.dk"
                         calendar.schedule.url_del_event = "#<@pim_events_del>";
                         calendar.schedule.params = #<to.json(@("&parameters"))>;
                         calendar.schedule.init();
+                        
+                        calendar.schedule.schedule.events = #<to.json(events)>;
+                        calendar.schedule.schedule.renderEvents();
+                        
                         // Script injection
                         #<@@(@crud_context,"script")>
                     });
