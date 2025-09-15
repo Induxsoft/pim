@@ -90,7 +90,7 @@ module "form.dk"
                         input(class="form-control rounded-0 no-shadow" type="date" value="#<date_str(now(),'yyyy-MM-dd')>" id="day")
                     }
                 }
-                div(class="d-flex gap-2")
+                div(class="d-flex justify-content-end flex-grow-1")
                 {
                     button(class="btn btn-sm no-shadow" type="button" "data-bs-toggle"="modal" "data-bs-target"="##<@modal_id>"){"Crear"}
                     button(class="btn btn-sm no-shadow" type="button" id="btn-edt-event"){"Editar"}

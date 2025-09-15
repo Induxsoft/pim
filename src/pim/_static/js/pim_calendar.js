@@ -98,6 +98,8 @@ var calendar = {
 
         changeStatus(newStatus)
         {
+            if (newStatus==99 && !confirm("¿Esta seguro que de desea cancelar el evento?")) return;
+
             this.edtEvent("change-status", {status:newStatus}, (res) => {
                 this.schedule.renderEvent(res);
             });
@@ -224,7 +226,7 @@ var calendar = {
         delEvent()
         {
             if (this.req_del_event || !this.selected) return;
-            if (!confirm("¿Esta seguro que desea eliminar el evento seleccionado?")) return;
+            if (!confirm("¿Esta seguro que desea eliminar el evento?")) return;
             this.req_del_event = true;
 
             let endpoint = this.url_del_event.replace("@_entity_id",this.selected[this.keyfield]);

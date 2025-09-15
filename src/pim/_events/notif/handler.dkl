@@ -1,0 +1,66 @@
+#include "dkli.dkh"
+#!
+program "Controlador de eventos"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
+    #include "pim/_lib/config.dk"
+    #include "pim/_lib/lib.dk"
+
+    do @context.begin(@event_context)
+
+    ref db = @("&database")
+    ref output = @("&eventdata/output")
+
+    // do file.wtext("___event_context.json", to.json(@event_context))
+    // do rise_error(0,"stop!")
+    if not(parse.bool(dbr.vars.get(db,"pim_events_enable_notification"))) { return }
+
+    today = date_str(now(),"yyyy-MM-dd HH:mm:ss")
+    new params
+    {
+        @"logged_user_pk": GetPkUsr(db,@("$eventdata/http/session/user/uid"))
+        @"notify_before": parse.num(dbr.vars.get(db,"pim_events_notify_before"))
+    }
+
+    ref events = dbr.list(db,"
+        select
+            e.sys_pk,
+            e.sys_guid,
+            e.calendar,
+            e.caption,
+            c.propietario
+        from pim_events e
+            inner join pim_calendar c on e.calendar = c.sys_pk
+        where
+            not ifnull(e.sys_deleted,0)
+            and ifnull(e.status,0) = 0
+            and c.propietario = @logged_user_pk
+            and e.`start` between now() and date_add(now(),interval @notify_before minute)
+    ",params)
+    for i = 0; i < list.count(events)
+    {
+        ref ev = list.obj(events,i)
+        id = @@(ev,@pim_events_keyfield)
+        owner = @@(ev,"#propietario")
+        link = replace(@pim_events_edt,"@_entity_id",id)
+
+        new notif
+        {
+            @"id": "@__pim"
+            @"sndrid": "pim"
+            @"title": "Eventos pendientes"
+            @"body": @@(ev,"$caption")
+            @"created": today
+            @"start": today
+            @"end": today
+            @"href": "/?go="+url_encode(link)
+            @"target": 2 //_self
+        }
+        do list.ins(output,0,notif)
+    }
+
+    do @context.end()
+}

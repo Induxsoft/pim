@@ -113,6 +113,35 @@
                 "varhelp": "Duración máxima en minutos para los eventos.",
                 "vartype": "int",
                 "varinput": { "control": "number" }
+            },
+            {
+                "varname": "pim_events_notify_before",
+                "vardefault": "",
+                "varvalue": "30",
+                "varcaption": "Notificar evento antes de 'n' minutos",
+                "varhelp": "Notificar antes de 'n' minutos del inicio",
+                "vartype": "int",
+                "varinput": { "control": "number" }
+            },
+            {
+                "varname": "pim_events_enable_notification",
+                "vardefault": "",
+                "varvalue": "1",
+                "varcaption": "Habilitar notificación de evento",
+                "varhelp": "Habilitar notificación de evento.",
+                "vartype": "bool",
+                "varinput": {
+                    "control": "select",
+                    "source": {
+                        "type":"list",
+                        "keyfield":"id",
+                        "showfield":"const",
+                        "values":[
+                            { "id":"1", "const":"Sí" },
+                            { "id":"0", "const":"No" }
+                        ]
+                    }
+                }
             }
         ]
     }
