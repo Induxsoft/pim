@@ -12,8 +12,8 @@ new sel_type
     @"datatable*": dbr.list(@("&database"),"select * from pim_events_type where not ifnull(sys_deleted,0)",@null)
     member "attributes"
     {
-        @"name": "type"
         @"class": "form-select rounded-0"
+        @"name": "type"
         @"required": ""
         @"onchange": "backcolor.value=this.selectedOptions[0].dataset.backcolor; color.value=this.selectedOptions[0].dataset.color;"
     }
@@ -21,6 +21,26 @@ new sel_type
     {
         @"data-backcolor": "#<@@(row,'$backcolor')>"
         @"data-color": "#<@@(row,'$color')>"
+    }
+}
+
+new sel_duration
+{
+    @"id": "duration"
+    @"value_field": "id"
+    @"text_field": "const"
+    @"selected": fd("duration","nm",entity)
+    @"datatable*": from.json('[
+        { "id":"15", "const":"15 min" },
+        { "id":"30", "const":"30 min" },
+        { "id":"60", "const":"1 hrs" },
+        { "id":"120", "const":"2 hrs" }
+    ]')
+    member "attributes"
+    {
+        @"class": "form-select rounded-0"
+        @"name": "duration"
+        @"required": ""
     }
 }
 #$
@@ -60,7 +80,10 @@ form(class="px-1" action="./" method="POST" id="#<@form_id>")
         div(class="col-6 col-sm-4 col-md-3")
         {
             label(class="form-label" "for"="duration"){"Duración:"}
-            input(class="form-control rounded-0" type="number" name="duration" value="#<fd('duration','nm',entity)>" id="duration" required="")
+            ##
+            do uie.dbSelect(sel_duration)
+            ##
+            // input(class="form-control rounded-0" type="number" name="duration" value="#<fd('duration','nm',entity)>" id="duration" required="")
         }
         div(class="col-3 col-sm-2 col-md-1")
         {
@@ -73,4 +96,8 @@ form(class="px-1" action="./" method="POST" id="#<@form_id>")
             input(class="form-control form-control-color rounded-0" type="color" name="color" value="#<fd('color','tx',entity)>" id="color")
         }
     }
+
+    input(type="hidden" name="detsrc" value="#<@@(entity,'$detsrc')>")
+    input(type="hidden" name="srcid" value="#<@@(entity,'#srcid')>")
+    input(type="hidden" name="tag" value="#<@@(entity,'$tag')>")
 }

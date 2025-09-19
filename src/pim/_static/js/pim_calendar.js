@@ -80,15 +80,19 @@ var calendar = {
 
             this.modal.addEventListener('show.bs.modal', (e) => {
                 this.form.elements['duration'].value = this.schedule.min_duration;
-                tools.trigger('#type','change');
+                tools.trigger('select[id="type"]','change');
             });
-            this.modal.addEventListener('hidden.bs.modal', (e) => { this.form.reset() });
+            this.modal.addEventListener('hidden.bs.modal', (e) => {
+                this.toggleModalEvent();
+                this.form.reset();
+            });
             this.schedule.addEventListener('cellclick', (e) => {
                 this.form.elements['start'].value = e.detail.datetime;
                 tools.showModal(this.modal_id);
             });
             this.schedule.addEventListener('itemclick', (e) => {    
-                this.selected = e.detail;
+                this.toggleModalEvent(e.detail);
+                tools.showModal(this.modal_id);
             });
             this.schedule.addEventListener('itemmoved', (e) => this.changeStart(e));
             this.schedule.addEventListener('itemresized', (e) => this.changeDuration(e));
@@ -102,6 +106,7 @@ var calendar = {
 
             this.edtEvent("change-status", {status:newStatus}, (res) => {
                 this.schedule.renderEvent(res);
+                tools.hideModal(this.modal_id);
             });
         },
         changeStart(e)
@@ -133,9 +138,51 @@ var calendar = {
             });
         },
 
+        toggleModalEvent(data=null)
+        {
+            const modalDialog = this.modal.querySelector('.modal-dialog');
+            const modalContent = this.modal.querySelector('.modal-content');
+            const modalFooter = this.modal.querySelector('.modal-footer');
+            const modalTitle = this.modal.querySelector('.modal-title');
+            const eventInfo = this.modal.querySelector('#event-info');
+            const spnImportant = document.getElementById('spn-important');
+            const spnDescription = document.getElementById('spn-description');
+            const spnStartDuration = document.getElementById('spn-start-duration');
+            const buttonsNew = modalFooter.querySelectorAll('.btn-new');
+            const buttonsEdt = modalFooter.querySelectorAll('.btn-edt');
+            const showEventInfo = (data != null);
+            
+            modalContent.style.backgroundColor = data?.backcolor ?? '';
+            modalContent.style.color = data?.color ?? '';
+            modalTitle.textContent = data?.tipo ?? 'Nuevo evento';
+            spnImportant.hidden = !data?.important;
+            spnDescription.textContent = data?.caption ?? '';
+            spnStartDuration.textContent = this.getStartRange(data?.start, data?.duration);
+
+            buttonsNew.forEach(b => b.hidden = showEventInfo);
+            buttonsEdt.forEach(b => b.hidden = !showEventInfo);
+            
+            if (showEventInfo)
+            {
+                modalDialog.classList.remove('modal-lg');
+                modalDialog.classList.add('modal-md');
+                modalFooter.classList.add('justify-content-between');
+            }
+            else
+            {
+                modalDialog.classList.remove('modal-md');
+                modalDialog.classList.add('modal-lg');
+                modalFooter.classList.remove('justify-content-between');
+            }
+
+            this.selected = data;
+            eventInfo.hidden = !showEventInfo;
+            this.form.classList.toggle('d-none',showEventInfo);
+        },
         loadCalendarEvent(data=null)
         {
             if (!data && !this.selected) return;
+            if (data && !this.selected) this.selected = data;
             if (!data && this.selected) data = this.selected;
 
             const fields = this.form.elements;
@@ -163,6 +210,33 @@ var calendar = {
                     content.style.cssText += `text-decoration:line-through;`;
                     break;
             }
+        },
+
+        getStartRange(start,duration)
+        {
+            if (!start || !duration) return '';
+            const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+            const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+            const ini = new Date(start);
+            const fin = new Date(ini.getTime() + (duration * 60000));
+
+            function formatHour (date) {
+                let h = date.getHours();
+                let m = date.getMinutes().toString().padStart(2,"0");
+                let t = h >= 12 ? "p.m." : "a.m.";
+                
+                h = h % 12;
+                if (h === 0) h = 12;
+                
+                return `${h.toString().padStart(2,"0")}:${m} ${t}`;
+            }
+
+            const dia = dias[ini.getDay()];
+            const dd = ini.getDate();
+            const mes = meses[ini.getMonth()];
+
+            return `${dia}, ${dd} de ${mes} ${formatHour(ini)} - ${formatHour(fin)}`;
         },
 
         addEvent()
@@ -233,6 +307,7 @@ var calendar = {
             InduxsoftCrudlModel.InvokeService(endpoint,null,
                 (res) => {
                     this.req_del_event = false;
+                    tools.hideModal(this.modal_id);
                     this.schedule.delete(this.selected?.id);
                     this.selected = null;
                 },

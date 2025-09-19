@@ -66,6 +66,10 @@ model "pim"
         @"status" int //null|0=pendiente, 1=hecho, 99-cancelado
         @"important" bool
         @"data" memo
+        // Campos de propósito general
+        @"detsrc" string(15)
+        @"srcid" int
+        @"tag" string(32)
     }
 
     entity "pim_calendar_per" : "TableModel"

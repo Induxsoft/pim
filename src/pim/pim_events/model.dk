@@ -9,21 +9,26 @@ module ":events"
     @list_query = "SELECT * FROM #<@table_name> WHERE NOT IFNULL(sys_deleted,0) LIMIT #<@default_max_rows>"
     @read_query = "
     SELECT
-        sys_pk,
-        sys_guid,
-        sys_recver,
-        calendar,
-        type,
-        CONCAT('ID',sys_guid) AS id,
-        caption,
-        DATE_FORMAT(start,'%Y-%m-%d %H:%i') start,
-        duration,
-        backcolor,
-        color,
-        status,
-        important
-    FROM #<@table_name>
-    WHERE #<@keyfield> = @_entity_id
+        e.sys_pk,
+        e.sys_guid,
+        e.sys_recver,
+        e.calendar,
+        e.type,
+        CONCAT('ID',e.sys_guid) AS id,
+        e.caption,
+        DATE_FORMAT(e.start,'%Y-%m-%d %H:%i') start,
+        e.duration,
+        e.backcolor,
+        e.color,
+        e.status,
+        IFNULL(e.important,0) important,
+        e.detsrc,
+        e.srcid,
+        e.tag,
+        t.nombre AS tipo
+    FROM #<@table_name> e
+        INNER JOIN pim_events_type t ON e.type = t.sys_pk
+    WHERE e.#<@keyfield> = @_entity_id
     LIMIT 1
     "
     @calendar_query = "SELECT * FROM pim_calendar WHERE #<@pim_calendar_keyfield> = @calendar LIMIT 1"
@@ -208,6 +213,9 @@ module ":events"
             if not(in_range) { do rise_error(515,"La duración se encuentra fuera del rango establecido en el calendario.") }
         }
         if is_new { data<"status"> : @stt_event_pendiente }
+        if @@(data,"$detsrc") == "" { do field.remove(data,"detsrc") }
+        if @@(data,"#srcid") < 1 { do field.remove(data,"srcid") }
+        if @@(data,"$tag") == "" { do field.remove(data,"tag") }
     }
 
     //#region list()
@@ -236,7 +244,17 @@ module ":events"
     {
         do dbr.apps.action.grant("TF20")
 
-        new data {}
+        new data
+        {
+            member "entity"
+            {
+                @"calendar": @@(params,"#calendar")
+                @"caption": @@(params,"$description")
+                @"detsrc": @@(params,"$detsrc")
+                @"srcid": @@(params,"#srcid")
+                @"tag": @@(params,"$tag")
+            }
+        }
         do prepareView(db,params,data)
         
         return data

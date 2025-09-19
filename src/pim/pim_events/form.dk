@@ -16,23 +16,27 @@ module "form.dk"
 	@_entities_type = @("$parameters/_entities_type")
 	@_entity_id = @("$parameters/_entity_id")
 	@is_new = (@_entity_id == "_new")
-    @calendar_pk = @@(entity,"#calendar")
     @form_id = "pim_calendar_evt"
+    @calendar_pk = @@(entity,"#calendar")
+    @enable_editing = @@(entity,"#status") == @stt_event_pendiente
 
-    url_bitacora = replace(@pim_events_log,"@guid",@@(entity,"$sys_guid"))
+    url_bitacora = ifstr(@is_new, "", replace(@pim_events_log,"@guid",@@(entity,"$sys_guid")))
     url_exit = replace(@pim_calendar_see,"@_entity_id",@calendar_pk)
 
     function printNavButtons()
     {
         cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners no-shadow"
-        #$
-        button(class="#<cls>" type="submit" form="#<@form_id>" title="Guardar"){$"#<@ICON_SAVE>"}
-        #!
+        if @enable_editing
+        {
+            #$
+            button(class="#<cls>" type="submit" form="#<@form_id>" title="Guardar"){$"#<@ICON_SAVE>"}
+            #!
+        }
     }
     point buttons to printNavButtons
     new nav_config
     {
-        @"title": @@(entity,"$id")
+        @"title": ifstr(@is_new, "Nuevo", "Editar") + " evento"
         @"urlexit": url_exit
         @"buttons*": buttons
         
@@ -57,7 +61,7 @@ module "form.dk"
             #$
         }
         // Contenido principal
-        section(id="work_area" style="overflow-y:auto; overflow-x:hidden;")
+        section(class="#<ifstr(@enable_editing,'','disabled-all')>" id="work_area" style="overflow-y:auto; overflow-x:hidden;")
         {
             link(href="#<@css_main>" rel="stylesheet")
             #!

@@ -92,11 +92,7 @@ module "form.dk"
                 }
                 div(class="d-flex justify-content-end flex-grow-1")
                 {
-                    button(class="btn btn-sm no-shadow" type="button" "data-bs-toggle"="modal" "data-bs-target"="##<@modal_id>"){"Crear"}
-                    button(class="btn btn-sm no-shadow" type="button" id="btn-edt-event"){"Editar"}
-                    button(class="btn btn-sm no-shadow" type="button" id="btn-del-event"){"Eliminar"}
-                    button(class="btn btn-sm no-shadow" type="button" id="btn-cancel-event"){"Cancelado"}
-                    button(class="btn btn-sm no-shadow" type="button" id="btn-complete-event"){"Completado"}
+                    button(class="btn btn-sm btn-light rounded-0 no-shadow border" type="button" "data-bs-toggle"="modal" "data-bs-target"="##<@modal_id>"){"Crear"}
                 }
             }
         }
@@ -130,19 +126,33 @@ module "form.dk"
                     {
                         div(class="modal-header p-3")
                         {
-                            h5(class="modal-title"){"Nuevo evento"}
-                            button(class="btn-close btn-sm" type="button" "data-bs-dismiss"="modal" "aria-label"="Close"){""}
+                            div(class="d-flex align-items-center gap-1")
+                            {
+                                h5(class="modal-title"){"Nuevo evento"}
+                                span(id="spn-important" hidden=""){"¡importante!"}
+                            }
+                            label(class="cursor-pointer" "data-bs-dismiss"="modal" "aria-label"="Close"){$"#<@ICON_X_LG>"}
                         }
-                        div(class="modal-body px-4 py-2 bg-white")
+                        div(class="modal-body px-4 py-2")
                         {
                             ##
                             #include "pim/pim_events/frm.dk"
                             ##
+                            div(id="event-info" hidden="")
+                            {
+                                div(class="my-2" id="spn-description" style="word-wrap:pre-wrap;"){""}
+                                span(class="d-block" id="spn-start-duration"){"Martes, 16 de septiembre 09:00 - 10:00"}
+                            }
                         }
                         div(class="modal-footer")
                         {
-                            button(type="button" class="btn btn-sm btn-primary rounded-0" id="btn-add-event"){"Aceptar"}
-                            button(type="button" class="btn btn-sm btn-light rounded-0" "data-bs-dismiss"="modal"){"Cancelar"}
+                            button(class="btn btn-sm btn-primary btn-new rounded-0" type="button" id="btn-add-event"){"Aceptar"}
+                            button(class="btn btn-sm btn-light btn-new rounded-0 border" type="button" "data-bs-dismiss"="modal"){"Cancelar"}
+                            
+                            label(class="btn-edt fw-bold cursor-pointer" id="btn-edt-event" hidden=""){"Editar"}
+                            label(class="btn-edt fw-bold cursor-pointer" id="btn-del-event" hidden=""){"Eliminar"}
+                            label(class="btn-edt fw-bold cursor-pointer" id="btn-cancel-event" hidden=""){"Cancelado"}
+                            label(class="btn-edt fw-bold cursor-pointer" id="btn-complete-event" hidden=""){"Completado"}
                         }
                     }
                 }
