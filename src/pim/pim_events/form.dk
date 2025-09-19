@@ -89,6 +89,7 @@ module "form.dk"
                 {$'
                     document.addEventListener("DOMContentLoaded", () => {
                         events.url_bitacora = "#<url_bitacora>";
+                        events.form_id = "#<@form_id>";
                         events.init();
                         // Script injection
                         #<@@(@crud_context,"script")>

@@ -75,6 +75,37 @@ module ":events"
         return events.update(db,params,data)
     }
 
+    //#region checkStartRange()
+    function checkStartRange(&db,&params)
+    {
+        calendar = @@(params,"#calendar")
+        start = @@(params,"$start")
+        duration = @@(params,"#duration")
+
+        if start == "" { return @null }
+        if calendar < 1 { do rise_error(511,"No se ha indicado el calendario de origen.") }
+        if calendar < 0 { do rise_error(512,"La duración no puede ser un valor negativo.") }
+
+        calendar, start, duration >> params
+
+        in_range = dbr.num(db,ftext("
+            SELECT COUNT(*)
+            FROM #<@table_name>
+            WHERE
+                NOT IFNULL(sys_deleted,0)
+                AND IFNULL(`status`,0) = 0
+                AND calendar = @calendar
+                AND (
+                    start BETWEEN TIMESTAMP(@start) AND DATE_ADD(@start, INTERVAL @duration MINUTE)
+                    OR
+                    DATE_ADD(start, INTERVAL duration MINUTE) BETWEEN TIMESTAMP(@start) AND DATE_ADD(@start, INTERVAL @duration MINUTE)
+                )
+        "),params)
+        if in_range > 0 { do rise_error(513,"Ya existe un evento agendado dentro del rango de tiempo seleccionado.") }
+
+        return @null
+    }
+
     //#region prepareView()
     function prepareView(&db,&params,&data)
     {
@@ -244,19 +275,26 @@ module ":events"
     {
         do dbr.apps.action.grant("TF20")
 
-        new data
+        _context = url_dcode(field.dstr(params,"_context","{}"))
+        if _context == "" { _context = "{}" }
+        ref context = from.json(_context)
+
+        if list.count(list.create_from_fields(context)) < 1
         {
-            member "entity"
+            using context
             {
                 @"calendar": @@(params,"#calendar")
-                @"caption": @@(params,"$description")
+                @"caption": @@(params,"$caption")
                 @"detsrc": @@(params,"$detsrc")
                 @"srcid": @@(params,"#srcid")
                 @"tag": @@(params,"$tag")
             }
         }
+        if @@(context,"$caption") == "" { context.caption := @@(context,"$description") }
+        if @@(context,"$caption") == "" { context.caption := @@(params,"$description") }
+
+        new data { @"entity*": context }
         do prepareView(db,params,data)
-        
         return data
         
         exception{ do catch(db,params,@null) }

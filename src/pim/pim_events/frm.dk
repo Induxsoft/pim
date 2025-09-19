@@ -15,7 +15,6 @@ new sel_type
         @"class": "form-select rounded-0"
         @"name": "type"
         @"required": ""
-        @"onchange": "backcolor.value=this.selectedOptions[0].dataset.backcolor; color.value=this.selectedOptions[0].dataset.color;"
     }
     member "attr_options"
     {
@@ -62,7 +61,7 @@ form(class="px-1" action="./" method="POST" id="#<@form_id>")
         div(class="col-12")
         {
             label(class="form-label" "for"="caption"){"Descripción:"}
-            textarea(class="form-control rounded-0" name="caption" id="caption" rows="3" required=""){"#<fd('caption','tx',entity)>"}
+            textarea(class="form-control rounded-0" name="caption" id="caption" rows="5" required=""){"#<fd('caption','tx',entity)>"}
         }
         div(class="col-12 py-1")
         {

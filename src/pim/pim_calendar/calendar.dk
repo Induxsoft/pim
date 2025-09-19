@@ -140,7 +140,7 @@ module "form.dk"
                             ##
                             div(id="event-info" hidden="")
                             {
-                                div(class="my-2" id="spn-description" style="word-wrap:pre-wrap;"){""}
+                                div(class="my-2" id="spn-description" style="white-space:pre-wrap;"){""}
                                 span(class="d-block" id="spn-start-duration"){"Martes, 16 de septiembre 09:00 - 10:00"}
                             }
                         }
@@ -149,10 +149,10 @@ module "form.dk"
                             button(class="btn btn-sm btn-primary btn-new rounded-0" type="button" id="btn-add-event"){"Aceptar"}
                             button(class="btn btn-sm btn-light btn-new rounded-0 border" type="button" "data-bs-dismiss"="modal"){"Cancelar"}
                             
-                            label(class="btn-edt fw-bold cursor-pointer" id="btn-edt-event" hidden=""){"Editar"}
-                            label(class="btn-edt fw-bold cursor-pointer" id="btn-del-event" hidden=""){"Eliminar"}
-                            label(class="btn-edt fw-bold cursor-pointer" id="btn-cancel-event" hidden=""){"Cancelado"}
                             label(class="btn-edt fw-bold cursor-pointer" id="btn-complete-event" hidden=""){"Completado"}
+                            label(class="btn-edt fw-bold cursor-pointer" id="btn-cancel-event" hidden=""){"Cancelado"}
+                            label(class="btn-edt fw-bold cursor-pointer" id="btn-del-event" hidden=""){"Eliminar"}
+                            label(class="btn-edt fw-bold cursor-pointer" id="btn-edt-event" hidden=""){"Editar"}
                         }
                     }
                 }
@@ -166,9 +166,13 @@ module "form.dk"
             {
                 script(src="/js/induxsoft.controls.schedule.js"){""}
                 script(src="#<@js_pim_calendar>"){""}
+                script(src="#<@js_pim_events>"){""}
                 script(type="text/javascript")
                 {$'
                     document.addEventListener("DOMContentLoaded", () => {
+                        events.form_id = "#<@form_id>";
+                        events.init();
+                        
                         calendar.schedule.form_id = "#<@form_id>";
                         calendar.schedule.modal_id = "#<@modal_id>";
                         calendar.schedule.schedule_id = "#<@schedule_id>";

@@ -26,5 +26,11 @@ module "EventsController"
             point @update to events.changeDuration
             break
         }
+        case "check-start-range"
+        {
+            point @list to events.checkStartRange
+            point @read to events.checkStartRange
+            break
+        }
     }
 }
