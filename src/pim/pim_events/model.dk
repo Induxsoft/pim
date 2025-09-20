@@ -82,14 +82,34 @@ module ":events"
         start = @@(params,"$start")
         duration = @@(params,"#duration")
 
-        if start == "" { return @null }
-        if calendar < 1 { do rise_error(511,"No se ha indicado el calendario de origen.") }
-        if calendar < 0 { do rise_error(512,"La duración no puede ser un valor negativo.") }
+        new resp
+        {
+            @"success": @true
+            @"message": ""
+            @"data*": @null
+        }
+
+        if start == "" { return resp }
+        if calendar < 1
+        {
+            resp.success := @false
+            resp.message := "No se ha indicado el calendario de origen."
+            return resp
+        }
+        if calendar < 0
+        {
+            resp.success := @false
+            resp.message := "La duración no puede ser un valor negativo."
+            return resp
+        }
 
         calendar, start, duration >> params
 
-        in_range = dbr.num(db,ftext("
-            SELECT COUNT(*)
+        ref ev = dbr.rec(db,ftext("
+            SELECT
+                caption,
+                DATE_FORMAT(start,'%Y-%m-%d %H:%i') start,
+                duration
             FROM #<@table_name>
             WHERE
                 NOT IFNULL(sys_deleted,0)
@@ -101,9 +121,17 @@ module ":events"
                     DATE_ADD(start, INTERVAL duration MINUTE) BETWEEN TIMESTAMP(@start) AND DATE_ADD(@start, INTERVAL @duration MINUTE)
                 )
         "),params)
-        if in_range > 0 { do rise_error(513,"Ya existe un evento agendado dentro del rango de tiempo seleccionado.") }
+        if not(isnull(ev))
+        {
+            using resp
+            {
+                @"success": @false
+                @"message": "Ya existe un evento agendado dentro del rango de tiempo seleccionado."
+                @"data*": ev
+            }
+        }
 
-        return @null
+        return resp
     }
 
     //#region prepareView()

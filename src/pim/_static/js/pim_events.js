@@ -32,13 +32,34 @@ var events = {
         url += "&duration="+this.ff['duration'].value;
 
         InduxsoftCrudlModel.InvokeService(url, null,
-            (resp) => {},
-            (error) => {
-                if (error.message) alert(error.message);
-                else console.error(error);
-            },
+            (resp) => { document.getElementById(this.form_id+"-warning")?.remove(); },
+            (error) => { this.showStartRangeWarning(error) },
             "GET", false
         );
+    },
+
+    showStartRangeWarning(error)
+    {
+        const div = document.createElement('div');
+        const id = this.form_id+"-warning";
+
+        if (error?.message && error?.data)
+        {
+            div.innerHTML = `
+            <b>${error?.message}</b><br>
+            ${error?.data?.caption??""}<br>
+            Inicio: ${error?.data?.start}, Duración: ${error?.data?.duration}min
+            `;
+        }
+        else if (error?.message) div.innerHTML = error.message;
+        else div.innerHTML = JSON.stringify(error);
+
+        document.getElementById(id)?.remove();
+        div.id = id;
+        div.classList.add('alert', 'alert-warning', 'mt-1');
+
+        this.form.insertAdjacentElement("afterend",div);
+        setTimeout(() => { div.remove() }, (10 * 1000));
     },
 
     setLog()
