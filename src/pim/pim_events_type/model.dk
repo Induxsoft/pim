@@ -34,8 +34,8 @@ module ""
         new data
         {
             @"data*": entity.list(db,params)
-            @"itemactions*": dbr.apps.itemactions(db,"DET0AF","action","",0)
-            @"itemreports*": dbr.apps.itemactions(db,"DET0AF","report","",0)
+            @"itemactions*": dbr.apps.itemactions(db,"DET0B1","action","",0)
+            @"itemreports*": dbr.apps.itemactions(db,"DET0B1","report","",0)
         }
         return data
 

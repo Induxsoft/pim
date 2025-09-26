@@ -27,7 +27,7 @@ module "form.dk"
     new nav_config
     {
         @"title": ifstr(@is_new,"Crear","Editar")+" tipo de evento"
-        @"urlexit": @pim_calendar
+        @"urlexit": @pim_events_type
         @"buttons*": buttons
         
         member @"hidden"
