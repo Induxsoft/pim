@@ -130,6 +130,15 @@ module "form.dk"
             #$
             form(class="px-1" action="./" method="POST" id="#<@form_id>")
             {
+                #!
+                if not(@is_new)
+                {
+                    #$
+                    div(class="d-flex justify-content-end")
+                    {
+                        h6{"ID: #<@@(entity,'$sys_guid')>"}
+                    }
+                }
                 input(type="hidden" name="sys_pk" value="#<@@(entity,'#sys_pk')>")
                 input(type="hidden" name="sys_recver" value="#<@@(entity,'#sys_recver')>")
                 
