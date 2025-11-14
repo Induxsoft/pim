@@ -1,0 +1,2 @@
+sys_guid,sys_dtcreated,sys_timestamp,sys_recver,id,description,token,source,pack_id,disabled
+4dc313555eba426fb6a66289e3a0328a,2025-11-13 17:21:23,2025-11-14 11:02:57,0,add-event,Agregar eventos a una agenda,add-event,pim/sise/add-event.dkl,pim,0

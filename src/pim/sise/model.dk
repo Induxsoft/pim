@@ -1,0 +1,128 @@
+#include "dkli.dkh"
+#!
+module ":rest"
+{
+    @pim_events_keyfield = "sys_pk"
+    //#region Utilidades
+    _params::{return @@(@http_context,"&request/get")}
+
+    GetDb::{return @@(@http_context,"&session/idp/database")}
+    GetHost::onlyhost
+    {
+        host=@@(@http_context,"request/headers/HTTP_HOST")
+        if trim(host)==""{host=@@(@http_context,"$request/headers/SERVER_NAME")}
+		protocol=ifstr(parse.bool(@@(@http_context,"request/headers/HTTPS")),"https","http")
+		path=replace(field.dstr(@http_context,"request/headers/request_uri","/"),"\\","/")
+
+		path=list.str(split(path,"?"),0)
+		
+        if onlyhost{path=""}
+
+		_h=protocol+"://"+path.concat(host,path)
+        
+        return _h
+    }
+    get_payload::
+	{
+		ref post=@@(@http_context,"&request/post")
+
+		if not(isnull(post))
+		{
+			if list.create_from_fields(post)>0
+			{
+				return post
+			}
+		}
+
+		return from.json(field.dstr(@http_context,"request/post_string","null"))
+
+		exception{}
+
+		return @null
+	}
+    ResponseText::text
+    {
+        // Establecer encabezado de respuesta http
+        @http_context<"response/headers/Content-Type"> : "text/plain"
+        // Indicar tipo de respuesta
+        @http_context<"response/output"> : "text"
+        // Asignar la respuesa de salida
+        @http_context<"response/text"> : text  
+    }
+    //#endregion
+    
+    //#region Eventos
+    AddEvent::&db,&params,&data
+    {
+        if trim(@@(params,"$id_agenda"))!=""{data<"id_agenda">:@@(params,"$id_agenda")}
+        if trim(@@(data,"$id_agenda"))==""{do rise_error(500,"No ha indicado el id de la agenda")}
+
+        if trim(@@(data,"$type"))==""{do rise_error(500,"No ha indicado el tipo de evento")}
+        if trim(@@(data,"$user"))==""{do rise_error(500,"No ha inidcado un usuario")}
+
+        calendar=dbr.num(db,"select sys_pk from pim_calendar where sys_guid=@id_agenda",data)
+        if calendar < 1{do rise_error(500,"No se encontró datos del la agenda")}
+
+        type=dbr.num(db,"select sys_pk from pim_events_type where sys_guid=@type or nombre=@type",data)
+        if type < 1{do rise_error(500,"No se encontró datos del tipo")}
+
+        do field.remove(data,"id_agenda")
+
+        using data
+        {
+            @"sys_guid":uuid()
+            @"sys_timestamp*":dbr.sql("now()")
+            @"sys_dtcreated*":dbr.sql("now()")
+            @"sys_pk":0
+            @"sys_recver":0
+            @"type":type
+            @"calendar":calendar
+            @"important":parse.bool(@@(data,"$important"))
+        }
+
+        //validar usuario
+        user=GetPkUsr(db,@@(data,"$user"))
+        if user < 1{do rise_error(500,"No se encontró datos del usuario indicado")}
+
+        using params
+        {
+            @"_entity_id":"_new"
+            @"calendar": calendar
+        }
+
+        params<"_operation">:"create"
+        if isnull(@@(@http_context,"&request/get")){@http_context<"request/get*">:params}
+        if isnull(@@(@http_context,"&session/user")){@http_context<"session/user*">:record.create()}
+
+        @http_context<"session/user/uid">:@@(data,"$user")
+        
+        //eliminar el campo usuario
+        do field.remove(data,"user")
+        //validar acciones de usuario ycampos
+        do events.validateEventAction(db,calendar)
+        do events.validateFields(db,params,data)
+        do dbr.insert(db,"pim_events",data)
+
+        return "Se ha agregado a la agenda con éxito"
+
+    }
+    //#endregion
+    
+    //#region Punto de entrada
+    EntryPoint::action
+    {
+        ref db=GetDb()
+        ref params=_params()
+        ref data=ifnull(get_payload(),record.create())
+        
+        switch action
+        {
+            case "add-event"{return AddEvent(db,params,data)}
+            default{do rise_error(500,"Acción no identificada")}
+        }
+
+        return ""
+    }
+    //#endregion
+    
+}
