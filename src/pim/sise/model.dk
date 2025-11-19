@@ -52,9 +52,15 @@ module ":rest"
     //#endregion
     
     //#region Eventos
-    AddEvent::&db,&params,&data
+    AddEvent::&db,&params,&_data
     {
+        ref data=@@(_data,"&data")
+        ref params=@@(_data,"&params")
+
         if trim(@@(params,"$id_agenda"))!=""{data<"id_agenda">:@@(params,"$id_agenda")}
+        if trim(@@(params,"$type"))!=""{data<"type">:@@(params,"$type")}
+        if trim(@@(params,"$user"))!=""{data<"user">:@@(params,"$user")}
+
         if trim(@@(data,"$id_agenda"))==""{do rise_error(500,"No ha indicado el id de la agenda")}
 
         if trim(@@(data,"$type"))==""{do rise_error(500,"No ha indicado el tipo de evento")}
