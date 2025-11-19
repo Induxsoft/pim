@@ -85,7 +85,9 @@ module ":rest"
             @"calendar":calendar
             @"important":parse.bool(@@(data,"$important"))
         }
-
+        
+        if trim(@@(data,"$backcolor"))==""{data<"backcolor">:"#ffffe1"}
+        if trim(@@(data,"$color"))==""{data<"color">:"#000000"}
         //validar usuario
         user=GetPkUsr(db,@@(data,"$user"))
         if user < 1{do rise_error(500,"No se encontró datos del usuario indicado")}
