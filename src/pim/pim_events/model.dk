@@ -96,7 +96,7 @@ module ":events"
             resp.message := "No se ha indicado el calendario de origen."
             return resp
         }
-        if calendar < 0
+        if duration < 0
         {
             resp.success := @false
             resp.message := "La duración no puede ser un valor negativo."
@@ -132,6 +132,41 @@ module ":events"
         }
 
         return resp
+    }
+
+    //#region CheckAvailability()
+    function CheckAvailability(&db,&params)
+    {
+        calendar = @@(params,"#calendar")
+        start = @@(params,"$start")
+        success = @true
+        message = ""
+
+        if calendar < 1
+        {
+            success = @false
+            message = "No se ha indicado el calendario de origen."
+            success, message >> response
+            return response
+        }
+
+        calendar, start >> params
+        ref cal = dbr.rec(db,"SELECT breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",params)
+        
+        weekday = tolower(dbr.str(db,"SELECT DATE_FORMAT(DATE(@start),'%W')",params))
+        weekend = replace(@@(cal,"$weekend")," ","")
+        success = not(isanyword(weekday,weekend))
+
+        holidays = replace(@@(cal,"$holidays")," ","")
+        success = not(isanyword(date_format(start,"mm-dd"),holidays))
+
+        if not(success)
+        {
+            message = "No se ha podido agendar el evento "+start+" porque es un día u horario no laborable o sin disponibilidad.\nLas siguientes fechas y horarios están disponibles cerca de esa fecha:\n"
+        }
+
+        success, message >> response
+        return response
     }
 
     //#region prepareView()

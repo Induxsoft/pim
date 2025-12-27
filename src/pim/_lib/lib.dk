@@ -3,6 +3,21 @@
 module "Funciones de propósito general"
 {
 	if not(isset("@http_context")) && isset("@crud_context") { ref @http_context = ifnull(@@(@crud_context,"&http"),record.create()) }
+
+    function date_format(dtm,fmt)
+    {
+        if dtm == "" { return "" }
+        if fmt == "" { fmt = "yyyy-MM-dd HH:mm:ss" }
+
+        fecha = date_str(str2dt(dtm),fmt)
+        return fecha
+
+        exception
+        {
+            do pop_exception()
+            return ""
+        }
+    }
 	
 	function fd(name,type,&obj)
     {
