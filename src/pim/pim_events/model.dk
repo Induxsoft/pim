@@ -151,14 +151,14 @@ module ":events"
             return response
         }
 
-        calendar, start, duration >> params
-        ref cal = dbr.rec(db,"SELECT start_lab_hour, end_lab_hour, intervalo, breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",params)
+        calendar, start, duration >> p
+        ref cal = dbr.rec(db,"SELECT start_lab_hour, end_lab_hour, intervalo, breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",p)
 
-        success = @@(checkStartRange(db,params),"#success")
+        success = @@(checkStartRange(db,p),"#success")
         if success { success = not(IsInBreak(start,@@(cal,"$breaks"))) }
         if success
         {
-            weekday = tolower(dbr.str(db,"SELECT DATE_FORMAT(DATE(@start),'%W')",params))
+            weekday = tolower(dbr.str(db,"SELECT DATE_FORMAT(DATE(@start),'%W')",p))
             weekend = replace(@@(cal,"$weekend")," ","")
             success = not(isanyword(weekday,weekend))
         }
@@ -172,18 +172,45 @@ module ":events"
         {
             message = "No se ha podido agendar el evento "+start+" porque es un día u horario no laborable o sin disponibilidad.\nLas siguientes fechas y horarios están disponibles cerca de esa fecha:\n"
             
-            ref result = GetAvailableDates(start,cal,7)
-            ref dates = list.create_from_fields(result)
-            for i = 0; i < list.count(dates)
+            // Fechas y horas disponibles a partir de la fecha y hora proporcionado.
+            limit = @@(params,"#suggested_days")
+            if limit < 1 { limit = 7 }
+            ref available = GetAvailableDates(start,cal,limit)
+            ref a_dates = list.create_from_fields(available)
+            // Consultar Fechas y horas ocupados dentro del rango de fechas disponibles.
+            using p
             {
-                date = list.str(dates,i)
+                @"fi": list.str(a_dates,0)
+                @"ff": list.str(a_dates,list.count(a_dates)-1)
+            }
+            ref busy = dbr.list(db,"
+            SELECT
+                DATE_FORMAT(e.`start`,'%Y-%m-%d') d,
+                GROUP_CONCAT(CONCAT(DATE_FORMAT(e.`start`,'%H:%i'),'-',DATE_FORMAT(DATE_ADD(e.`start`, INTERVAL e.duration MINUTE),'%H:%i')) SEPARATOR ',') h
+            FROM pim_events e
+            WHERE DATE(e.`start`) BETWEEN DATE(@fi) AND DATE(@ff)
+            GROUP BY DATE(e.`start`)
+            ",p)
+            // Convertir la lista de fechas y horas ocupados a un record.
+            ref b_dates = record.create()
+            for i = 0; i < list.count(busy)
+            {
+                ref itm = list.obj(busy,i)
+                b_dates<@@(itm,"$d")> : @@(itm,"$h")
+            }
+            // Concatenar las fechas y horas disponibles a la respuesta.
+            for i = 0; i < list.count(a_dates)
+            {
+                date = list.str(a_dates,i)
                 message = message + date + "\r\n"
                 
-                ref hours = field.obj(result,date)
+                ref hours = field.obj(available,date)
                 for j = 0; j < list.count(hours)
                 {
                     hour = list.str(hours,j)
-                    message = message + hour + "\r\n"
+                    if not(IsInBreak(hour,@@(b_dates,date))) {
+                        message = message + hour + "\r\n"
+                    }
                 }
             }
         }
@@ -300,7 +327,18 @@ module ":events"
             @"calendar": calendar
             @"type": type
         }
+        if is_new
+        {
+            if trim(@@(data,"$caption")) == "" { do rise_error(513,"No ha indicado la descripción del evento.") }
+            if trim(@@(data,"$start")) == "" { do rise_error(513,"No ha indicado la fecha y hora del evento.") }
 
+            min_duration = parse.num(dbr.vars.get(db,"pim_events_min_duration"))
+            if @@(data,"#duration") < min_duration { data<"duration"> : min_duration }
+
+            ref event_type = dbr.rec(db,"select backcolor, color from pim_events_type where sys_pk = @type",data)
+            if @@(data,"$backcolor") == "" { data<"backcolor"> : @@(event_type,"$backcolor") }
+            if @@(data,"$color") == "" { data<"color"> : @@(event_type,"$color") }
+        }
         if field.exist(data,"important"){ data<"important"> : parse.bool(@@(data,"$important")) }
         if field.exist(data,"status")
         {
@@ -329,6 +367,7 @@ module ":events"
             in_range = dbr.num(db,"SELECT (@duration BETWEEN min_duration AND max_duration) FROM pim_calendar WHERE sys_pk = @calendar",data)
             if not(in_range) { do rise_error(515,"La duración se encuentra fuera del rango establecido en el calendario.") }
         }
+        
         if is_new { data<"status"> : @stt_event_pendiente }
         if @@(data,"$detsrc") == "" { do field.remove(data,"detsrc") }
         if @@(data,"#srcid") < 1 { do field.remove(data,"srcid") }

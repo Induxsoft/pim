@@ -23,7 +23,7 @@ module ""
 
     exception
     {
-        res="Ocurrió un error: "+last_error()
+        res="No fue posible agendar el evento: "+last_error()
     }
     
     do rest.ResponseText(res)
