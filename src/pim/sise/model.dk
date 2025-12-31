@@ -53,66 +53,70 @@ module ":rest"
     //#endregion
     
     //#region Eventos
-    AddEvent::&db,&params,&payload
+    GetEvent::&db,event_id
     {
-        ref data = @@(payload,"&data")
-
-        if trim(@@(params,"$calendar_id")) != "" { data<"calendar_id"> : @@(params,"$calendar_id") }
-        if trim(@@(params,"$type")) != "" { data<"type"> : @@(params,"$type") }
-
-        if trim(@@(data,"$calendar_id")) == "" {do rise_error(400,"No ha indicado el id del calendario.") }
-        if trim(@@(data,"$type")) == "" { do rise_error(400,"No ha indicado el tipo de evento.") }
-
-        ref calendar = dbr.rec(db,"select sys_pk, sys_guid, propietario, nombre from pim_calendar where sys_guid=@calendar_id",data)
-        if isnull(calendar) { do rise_error(404,"No se encontró datos del la agenda") }
-        ref event_type = dbr.rec(db,"select sys_pk, nombre from pim_events_type where sys_guid=@type or nombre=@type",data)
-        if isnull(event_type) { do rise_error(404,"No se encontró datos del tipo") }
-
-        calendar_pk = @@(calendar,"#sys_pk")
-        calendar_owner_id = dbr.str(db,"select sys_guid from tuser where sys_pk = @propietario",calendar)
-        event_type_pk = @@(event_type,"#sys_pk")
-
-        do field.remove(data,"calendar_id")
-
-        using data
-        {
-            @"sys_guid":uuid()
-            @"sys_timestamp*":dbr.sql("now()")
-            @"sys_dtcreated*":dbr.sql("now()")
-            @"sys_pk":0
-            @"sys_recver":0
-            @"type":event_type_pk
-            @"calendar":calendar_pk
-            @"important":parse.bool(@@(data,"$important"))
-        }
-
-        if trim(@@(data,"$backcolor")) == "" { data<"backcolor"> : "#ffffe1" }
-        if trim(@@(data,"$color")) == "" { data<"color"> : "#000000" }
-        
-        using params
-        {
-            @"_entity_id":"_new"
-            @"calendar":calendar_pk
-        }
-
-        params<"_operation"> : "create"
-        if isnull(@@(@http_context,"&request/get")) { @http_context<"request/get*"> : params}
-        if isnull(@@(@http_context,"&session/user")) { @http_context<"session/user*"> : record.create()}
-
-        @http_context<"session/user/uid"> : calendar_owner_id
-
-        //validar acciones de usuario y campos
-        do events.validateEventAction(db,calendar_pk)
-        do events.validateFields(db,params,data)
-        do dbr.insert(db,"pim_events",data)
+        event_id >> params
         ref event = dbr.rec(db,"
         select
+            sys_pk,
             sys_guid,
+            calendar,
+            type,
             ifnull(date_format(`start`,'%Y-%m-%d %H:%i'),'') `start`,
             ifnull(duration,0), duration
         from pim_events
-        where sys_pk = last_insert_id()
-        ",@null)
+        where sys_guid = @event_id
+        ",params)
+        return event
+    }
+
+    AddEvent::&db,&params,&payload
+    {
+        ref calendar = @@(payload,"&calendar")
+        ref data = @@(payload,"&data")
+
+        if trim(@@(data,"$type")) == "" { do rise_error(400,"No ha indicado el tipo de evento.") }
+        
+        ref event_type = dbr.rec(db,"select sys_pk, nombre from pim_events_type where sys_guid=@type or nombre=@type",data)
+        if isnull(event_type) { do rise_error(404,"No se encontró datos del tipo de evento.") }
+
+        calendar_pk = @@(calendar,"#sys_pk")
+        calendar_owner_id = dbr.str(db,"select sys_guid from tuser where sys_pk = @propietario",calendar)
+
+        using data
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": dbr.sql("now()")
+            @"sys_timestamp*": dbr.sql("now()")
+            @"sys_recver": 0
+
+            @"type": @@(event_type,"#sys_pk")
+            @"calendar": calendar_pk
+            @"important": parse.bool(@@(data,"$important"))
+        }
+        // if trim(@@(data,"$backcolor")) == "" { data<"backcolor"> : "#ffffe1" }
+        // if trim(@@(data,"$color")) == "" { data<"color"> : "#000000" }
+        
+        using params
+        {
+            @"_operation": "create"
+            @"_entity_id": "_new"
+            @"calendar": calendar_pk
+        }
+        if isnull(@@(@http_context,"&request/get")) { @http_context<"request/get*"> : params}
+        if isnull(@@(@http_context,"&session/user")) { @http_context<"session/user*"> : record.create()}
+        @http_context<"session/user/uid"> : calendar_owner_id
+
+        // validar acciones de usuario y campos
+        do events.validateEventAction(db,calendar_pk)
+        do events.validateFields(db,params,data)
+        
+        ref resp = events.CheckAvailability(db,data)
+        if not(@@(resp,"#success")) { return @@(resp,"$message") }
+        
+        do dbr.insert(db,"pim_events",data)
+        ref event = GetEvent(db,@@(data,"$sys_guid"))
 
         //* ======================================== [ RESPONSE ]
 
@@ -127,6 +131,130 @@ module ":rest"
         
         return success_message
     }
+
+    EdtEvent::&db,&params,&payload
+    {
+        ref calendar = @@(payload,"&calendar")
+        ref event = @@(payload,"&event")
+        ref data = @@(payload,"&data")
+
+        calendar_pk = @@(calendar,"#sys_pk")
+        calendar_owner_id = dbr.str(db,"select sys_guid from tuser where sys_pk = @propietario",calendar)
+
+        using data
+        {
+            @"sys_timestamp*": dbr.sql("now()")
+            @"sys_recver*": dbr.sql("sys_recver + 1")
+            @"important": parse.bool(@@(data,"$important"))
+        }
+
+        if @@(data,"$type") != ""
+        {
+            event_type_pk = dbr.num(db,"select sys_pk from pim_events_type where sys_guid=@type or nombre=@type",data)
+            if event_type_pk < 1 { do rise_error(404,"No se encontró datos del tipo de evento.") }
+            data<"type"> : event_type_pk
+        }
+
+        using params
+        {
+            @"_operation": "update"
+            @"_entity_id": @@(event,"#sys_pk")
+            @"calendar": calendar_pk
+        }
+        if isnull(@@(@http_context,"&request/get")) { @http_context<"request/get*"> : params}
+        if isnull(@@(@http_context,"&session/user")) { @http_context<"session/user*"> : record.create()}
+        @http_context<"session/user/uid"> : calendar_owner_id
+
+        // validar acciones de usuario y campos
+        do events.validateEventAction(db,calendar_pk)
+        do events.validateFields(db,params,data)
+        
+        ref resp = events.CheckAvailability(db,data)
+        if not(@@(resp,"#success")) { return @@(resp,"$message") }
+        
+        do dbr.update(db,"pim_events",data,"sys_pk=@sys_pk",event)
+        ref event:GetEvent(db,@@(event,"$sys_guid"))
+
+        //* ======================================== [ RESPONSE ]
+
+        calendar_id = @@(calendar,"$sys_guid")
+        calendar_name = @@(calendar,"$nombre")
+        event_type_name = dbr.str(db,"select nombre from pim_events_type where sys_pk=@type",event)
+        event_id = @@(event,"$sys_guid")
+        event_start = @@(event,"$start")
+        event_duration = @@(event,"#duration")
+
+        success_message = ftext("Se ha agregado con éxito el evento #<event_type_name> (event_id:#<event_id>) al calendario #<calendar_name> (calendar_id:#<calendar_id>) el #<event_start> con una duración prevista de #<event_duration> minutos")
+        
+        return success_message
+    }
+
+    SaveEvent::&db,&params,&payload
+    {
+        ref data = @@(payload,"&data")
+        is_new = @true
+
+        if trim(@@(params,"$calendar_id")) != "" { data<"calendar_id"> : @@(params,"$calendar_id") }
+        if trim(@@(params,"$type")) != "" { data<"type"> : @@(params,"$type") }
+        
+        if trim(@@(data,"$calendar_id")) == "" { do rise_error(400,"No ha indicado el id del calendario.") }
+        if trim(@@(data,"$event_id")) != ""
+        {
+            ref event = GetEvent(db,@@(data,"$event_id"))
+            payload<"event*"> : event
+            is_new = isnull(event)
+        }
+
+        ref calendar = dbr.rec(db,"select sys_pk, sys_guid, propietario, nombre from pim_calendar where sys_guid=@calendar_id",data)
+        if isnull(calendar) { do rise_error(404,"No se encontró datos del calendario.") }
+
+        payload<"calendar*"> : calendar
+        do field.remove(data,"calendar_id")
+        do field.remove(data,"event_id")
+
+        if is_new { return AddEvent(db,params,payload) }
+        else { return EdtEvent(db,params,payload) }
+    }
+
+    DelEvent::&db,&params,&payload
+    {
+        ref data = @@(payload,"&data")
+
+        if trim(@@(params,"$calendar_id")) != "" { data<"calendar_id"> : @@(params,"$calendar_id") }
+        if trim(@@(params,"$event_id")) != "" { data<"event_id"> : @@(params,"$event_id") }
+
+        if trim(@@(data,"$calendar_id")) == "" { do rise_error(400,"No ha indicado el id del calendario.") }
+        if trim(@@(data,"$event_id")) == "" { do rise_error(400,"No ha indicado el id del evento.") }
+
+        ref calendar = dbr.rec(db,"select sys_pk, sys_guid, propietario, nombre from pim_calendar where sys_guid=@calendar_id",data)
+        if isnull(calendar) { do rise_error(404,"No se encontró datos del calendario.") }
+
+        ref event = GetEvent(db,@@(data,"$event_id"))
+        if isnull(event) { do rise_error(404,"No se encontró datos del evento.") }
+
+        calendar_pk = @@(calendar,"#sys_pk")
+        calendar_owner_id = dbr.str(db,"select sys_guid from tuser where sys_pk = @propietario",calendar)
+
+        using params
+        {
+            @"_operation": "delete"
+            @"_entity_id": @@(event,"#sys_pk")
+            @"calendar": calendar_pk
+        }
+        if isnull(@@(@http_context,"&request/get")) { @http_context<"request/get*"> : params}
+        if isnull(@@(@http_context,"&session/user")) { @http_context<"session/user*"> : record.create()}
+        @http_context<"session/user/uid"> : calendar_owner_id
+
+        // validar acciones de usuario y campos
+        do events.validateEventAction(db,calendar_pk)
+
+        codeblock ""
+        {
+            do dbr.delete(db,"pim_events","sys_pk=@sys_pk",event)
+            return "Se elimino el evento"
+            exception{ return "No fue posible eliminar el evento" }
+        }
+    }
     //#endregion
     
     //#region Punto de entrada
@@ -138,7 +266,8 @@ module ":rest"
         
         switch action
         {
-            case "add-event" { return AddEvent(db,params,payload) }
+            case "save-event" { return SaveEvent(db,params,payload) }
+            case "delete-event" { return DelEvent(db,params,payload) }
             default{ do rise_error(500,"Acción no identificada") }
         }
 

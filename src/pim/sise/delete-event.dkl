@@ -14,13 +14,13 @@ module ""
     #include "crudl/entity.dk"
     #include "pim/_lib/config.dk"
     #include "pim/_lib/lib.dk"
-    #include "model.dk"
     #include "pim/pim_events/model.dk"
-    
+    #include "model.dk"
+
     do errordet(@false)
 
-    res= str(rest.EntryPoint("add-event"))
-    
+    res = str(rest.EntryPoint("delete-event"))
+
     exception
     {
         res="Ocurrió un error: "+last_error()

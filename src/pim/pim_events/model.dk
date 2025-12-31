@@ -139,6 +139,7 @@ module ":events"
     {
         calendar = @@(params,"#calendar")
         start = @@(params,"$start")
+        duration = @@(params,"#duration")
         success = @true
         message = ""
 
@@ -150,19 +151,41 @@ module ":events"
             return response
         }
 
-        calendar, start >> params
-        ref cal = dbr.rec(db,"SELECT breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",params)
-        
-        weekday = tolower(dbr.str(db,"SELECT DATE_FORMAT(DATE(@start),'%W')",params))
-        weekend = replace(@@(cal,"$weekend")," ","")
-        success = not(isanyword(weekday,weekend))
+        calendar, start, duration >> params
+        ref cal = dbr.rec(db,"SELECT start_lab_hour, end_lab_hour, intervalo, breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",params)
 
-        holidays = replace(@@(cal,"$holidays")," ","")
-        success = not(isanyword(date_format(start,"mm-dd"),holidays))
+        success = @@(checkStartRange(db,params),"#success")
+        if success { success = not(IsInBreak(start,@@(cal,"$breaks"))) }
+        if success
+        {
+            weekday = tolower(dbr.str(db,"SELECT DATE_FORMAT(DATE(@start),'%W')",params))
+            weekend = replace(@@(cal,"$weekend")," ","")
+            success = not(isanyword(weekday,weekend))
+        }
+        if success
+        {
+            holidays = replace(@@(cal,"$holidays")," ","")
+            success = not(isanyword(date_format(start,"mm-dd"),holidays))
+        }
 
         if not(success)
         {
             message = "No se ha podido agendar el evento "+start+" porque es un día u horario no laborable o sin disponibilidad.\nLas siguientes fechas y horarios están disponibles cerca de esa fecha:\n"
+            
+            ref result = GetAvailableDates(start,cal,7)
+            ref dates = list.create_from_fields(result)
+            for i = 0; i < list.count(dates)
+            {
+                date = list.str(dates,i)
+                message = message + date + "\r\n"
+                
+                ref hours = field.obj(result,date)
+                for j = 0; j < list.count(hours)
+                {
+                    hour = list.str(hours,j)
+                    message = message + hour + "\r\n"
+                }
+            }
         }
 
         success, message >> response

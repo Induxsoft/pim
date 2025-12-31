@@ -4,6 +4,27 @@ module "Funciones de propósito general"
 {
 	if not(isset("@http_context")) && isset("@crud_context") { ref @http_context = ifnull(@@(@crud_context,"&http"),record.create()) }
 
+    module "Mapeo de funciones de .Net a Devkron"
+    {
+        ref lib_pim = _import_library("induxsoft.calendars.dll")
+
+        /**
+        * Comprueba rangos de horario.
+        *
+        * @param String timeOrDateTime | Horario a comprobar
+        * @param String breaks | Lista de horarios separadas por coma (HH:mm-HH:mm, ...)
+        */
+        do _map_function(lib_pim, "induxsoft.calendars.PimEvents", "IsInBreak", "IsInBreak", "System.String,System.String", "#")
+        /**
+        * Genera un array de fechas y horas que se determinan como disponibles según la configuración proporcionada.
+        *
+        * @param String start | Fecha y hora de inicio
+        * @param Object config | Configuración del calendario
+        * @param Int limit | Cantidad de resultados (fecha horas) a devolver
+        */
+        do _map_function(lib_pim, "induxsoft.calendars.PimEvents", "GetAvailableDates", "GetAvailableDates", "System.String,*System.Object,System.Int32", "*")
+    }
+
     function date_format(dtm,fmt)
     {
         if dtm == "" { return "" }
