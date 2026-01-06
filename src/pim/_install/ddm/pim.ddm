@@ -43,6 +43,7 @@ model "pim"
 		@"intervalo" int
 		@"min_duration" int
         @"max_duration" int
+        @"minutes_in_advance" int
         @"breaks" string(150)
 		@"weekend" string(65)
 		@"holidays" memo
@@ -93,5 +94,14 @@ model "pim"
         @"nombre" string(50) unique required
         @"backcolor" string(7) //Color de fondo
         @"color" string(7) //Color de texto
+        @"link1" string(512)
+        @"link1_text" string(15)
+        @"link1_target_blank" bool
+        @"link2" string(512)
+        @"link2_text" string(15)
+        @"link2_target_blank" bool
+        @"link3" string(512)
+        @"link3_text" string(15)
+        @"link3_target_blank" bool
     }
 }

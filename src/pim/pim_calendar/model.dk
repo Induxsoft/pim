@@ -48,7 +48,11 @@ module ":calendar"
         e.detsrc,
         e.srcid,
         e.tag,
-        t.nombre AS tipo
+        e.data,
+        t.nombre AS tipo,
+        t.link1, t.link1_text, t.link1_target_blank,
+        t.link2, t.link2_text, t.link2_target_blank,
+        t.link3, t.link3_text, t.link3_target_blank
     FROM pim_events e
         INNER JOIN pim_events_type t ON e.type = t.sys_pk
     WHERE
@@ -89,6 +93,21 @@ module ":calendar"
 
         return searchUsers(db,p)
     }
+
+    function parseEventLinks(&db,&event)
+    {
+        json = @@(event,"$data")
+        if json == "" { json = "{}" }
+        event<"data*"> : from.json(json)
+
+        do @context.begin(event)
+
+        event<"link1"> : ftext(@@(event,"$link1"))
+        event<"link2"> : ftext(@@(event,"$link2"))
+        event<"link3"> : ftext(@@(event,"$link3"))
+
+        do @context.end()
+    }
     
     //#region prepareView()
     function prepareView(&db,&params,&data)
@@ -97,7 +116,14 @@ module ":calendar"
         
         if @@(params,"$action") == "view-calendar"
         {
-            data<"events*"> : dbr.list(db,@events_query,params)
+            ref events = dbr.list(db,@events_query,params)
+            for i = 0; i < list.count(events)
+            {
+                ref event = list.obj(events,i)
+                do parseEventLinks(db,event)
+            }
+
+            data<"events*"> : events
         }
         else
         {

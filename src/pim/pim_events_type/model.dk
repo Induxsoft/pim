@@ -23,7 +23,16 @@ module ""
     //#region validateFields()
     function validateFields(&data)
     {
-        //code here...
+        nombre = cut(trim(@@(data,"$nombre")),50)
+
+        link1_text = cut(trim(@@(data,"$link1_text")),15)
+        link1_target_blank = parse.bool(@@(data,"$link1_target_blank"))
+        link2_text = cut(trim(@@(data,"$link2_text")),15)
+        link2_target_blank = parse.bool(@@(data,"$link2_target_blank"))
+        link3_text = cut(trim(@@(data,"$link3_text")),15)
+        link3_target_blank = parse.bool(@@(data,"$link3_target_blank"))
+
+        nombre, link1_text, link1_target_blank, link2_text, link2_target_blank, link3_text, link3_target_blank >> data
     }
 
     //#region list()

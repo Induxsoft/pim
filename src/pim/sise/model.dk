@@ -208,6 +208,8 @@ module ":rest"
 
         if trim(@@(params,"$calendar_id")) != "" { data<"calendar_id"> : @@(params,"$calendar_id") }
         if trim(@@(params,"$type")) != "" { data<"type"> : @@(params,"$type") }
+        if field.exist(params,"response_type") { data<"response_type"> : @@(params,"$response_type") }
+        if field.exist(params,"suggested_days") { data<"suggested_days"> : @@(params,"#suggested_days") }
         if field.exist(params,"only_on_the_hour") { data<"only_on_the_hour"> : @@(params,"$only_on_the_hour") }
         
         if trim(@@(data,"$calendar_id")) == "" { do rise_error(400,"No ha indicado el id del calendario.") }

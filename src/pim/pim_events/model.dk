@@ -25,7 +25,11 @@ module ":events"
         e.detsrc,
         e.srcid,
         e.tag,
-        t.nombre AS tipo
+        e.data,
+        t.nombre AS tipo,
+        t.link1, t.link1_text, t.link1_target_blank,
+        t.link2, t.link2_text, t.link2_target_blank,
+        t.link3, t.link3_text, t.link3_target_blank
     FROM #<@table_name> e
         INNER JOIN pim_events_type t ON e.type = t.sys_pk
     WHERE e.#<@keyfield> = @_entity_id
@@ -155,6 +159,23 @@ module ":events"
         ref cal = dbr.rec(db,"SELECT start_lab_hour, end_lab_hour, intervalo, breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",p)
 
         success = @@(checkStartRange(db,p),"#success")
+        // Comprobar que el inicio sea una fecha válida.
+        if success
+        {
+            ref r = dbr.rec(db,"
+            SELECT
+                (@start > DATE_ADD(NOW(), INTERVAL IFNULL(c.minutes_in_advance,0) MINUTE)) valid_start,
+                DATE_FORMAT(DATE_ADD(NOW(), INTERVAL IFNULL(c.minutes_in_advance,0) MINUTE), '%Y-%m-%d %H:%i') ahora
+            FROM pim_calendar c
+            WHERE c.sys_pk = @calendar
+            ",p)
+            if not(@@(r,"$valid_start"))
+            {
+                success = @false
+                p<"start"> : @@(r,"$ahora")
+            }
+        }
+        // Comprobar que el inicio y fin no interfieran con los recesos.
         if success
         {
             sql = "
@@ -167,12 +188,14 @@ module ":events"
 
             success = not(IsInBreak(start,@@(cal,"$breaks"))) && not(IsInBreak(finish,@@(cal,"$breaks")))
         }
+        // Comprobar que el dia del evento no corresponda a los días de descanzo.
         if success
         {
             weekday = tolower(dbr.str(db,"SELECT DATE_FORMAT(DATE(@start),'%W')",p))
             weekend = replace(@@(cal,"$weekend")," ","")
             success = not(isanyword(weekday,weekend))
         }
+        // Comprobar que la fecha del evento no corresponda a una de las fechas no laborales.
         if success
         {
             holidays = replace(@@(cal,"$holidays")," ","")
@@ -186,7 +209,8 @@ module ":events"
             // Fechas y horas disponibles a partir de la fecha y hora proporcionado.
             limit = @@(params,"#suggested_days")
             if limit < 1 { limit = 7 }
-            ref available = GetAvailableDates(start,cal,limit)
+            
+            ref available = GetAvailableDates(p.start,cal,limit)
             ref a_dates = list.create_from_fields(available)
             // Consultar Fechas y horas ocupados dentro del rango de fechas disponibles.
             using p
@@ -234,12 +258,32 @@ module ":events"
         return response
     }
 
+    //#region parseEventLinks()
+    function parseEventLinks(&db,&event)
+    {
+        json = @@(event,"$data")
+        if json == "" { json = "{}" }
+        event<"data*"> : from.json(json)
+
+        do @context.begin(event)
+
+        event<"link1"> : ftext(@@(event,"$link1"))
+        event<"link2"> : ftext(@@(event,"$link2"))
+        event<"link3"> : ftext(@@(event,"$link3"))
+
+        do @context.end()
+    }
+
     //#region prepareView()
     function prepareView(&db,&params,&data)
     {
         is_new = (@@(params,"$_entity_id") == "_new")
 
-        if not(is_new) && not(field.exist(data,"entity")) { data<"entity*"> : read(db,params) }
+        if not(is_new)
+        {
+            if not(field.exist(data,"entity")) { data<"entity*"> : read(db,params) }
+            do parseEventLinks(db,@@(data,"&entity"))
+        }
     }
 
     //#region triggerEventAction()

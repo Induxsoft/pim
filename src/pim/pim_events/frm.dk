@@ -2,6 +2,7 @@
 #include "dbr.dkh"
 #!
 if not(isset("entity")) { ref entity=record.create() }
+is_new = (@@(entity,"#sys_pk") < 1)
 
 new sel_type
 {
@@ -48,12 +49,48 @@ new sel_duration
         @"required": ""
     }
 }
+
+temp = '<li><a class="dropdown-item" href="@url" target="@target">@text</a></li>'
+links = ""
+if @@(entity,"$link1") != ""
+{
+    link = replace(temp,"@url",@@(entity,"$link1"))
+    link = replace(link,"@text",@@(entity,"$link1_text"))
+    link = replace(link,"@target",ifstr(@@(entity,"#link1_target_blank"),"_blank","_self"))
+    links = links + link
+}
+if @@(entity,"$link2") != ""
+{
+    link = replace(temp,"@url",@@(entity,"$link2"))
+    link = replace(link,"@text",@@(entity,"$link2_text"))
+    link = replace(link,"@target",ifstr(@@(entity,"#link2_target_blank"),"_blank","_self"))
+    links = links + link
+}
+if @@(entity,"$link3") != ""
+{
+    link = replace(temp,"@url",@@(entity,"$link3"))
+    link = replace(link,"@text",@@(entity,"$link3_text"))
+    link = replace(link,"@target",ifstr(@@(entity,"#link3_target_blank"),"_blank","_self"))
+    links = links + link
+}
+
 #$
 form(class="px-1" action="./" method="POST" id="#<@form_id>")
 {
     input(type="hidden" name="sys_pk" value="#<@@(entity,'#sys_pk')>")
     input(type="hidden" name="sys_recver" value="#<@@(entity,'#sys_recver')>")
     input(type="hidden" name="calendar" value="#<@calendar_pk>")
+
+    #!
+    if not(is_new)
+    {
+        #$
+        div(class="d-flex justify-content-end")
+        {
+            h6(class="mb-0"){"ID: #<@@(entity,'$sys_guid')>"}
+        }
+    }
+    #$
 
     div(class="row gx-1 gx-sm-2 gx-md-3 gx-lg-4")
     {
@@ -64,10 +101,24 @@ form(class="px-1" action="./" method="POST" id="#<@form_id>")
             do uie.dbSelect(sel_type)
             ##
         }
+        #!
+        if not(is_new)
+        {
+            #$
+            div(class="col-12 col-sm-4 col-md-3 align-self-end")
+            {
+                div(class="dropdown")
+                {
+                    button(class="btn btn-secondary shadow-none dropdown-toggle" type="button" id="dmb-event-links" "data-bs-toggle"="dropdown" "aria-expanded"="false"){"Enlaces"}
+                    ul(class="dropdown-menu" "aria-labelledby"="dmb-event-links"){$"#<links>"}
+                }
+            }
+        }
+        #$
         div(class="col-12")
         {
             label(class="form-label" "for"="caption"){"Descripción:"}
-            textarea(class="form-control rounded-0" name="caption" id="caption" rows="5" required=""){"#<fd('caption','tx',entity)>"}
+            textarea(class="form-control rounded-0 no-disable" name="caption" id="caption" rows="5" required=""){"#<fd('caption','tx',entity)>"}
         }
         div(class="col-12 py-1")
         {

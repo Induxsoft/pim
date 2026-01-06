@@ -70,11 +70,22 @@ module "form.dk"
                 input(type="hidden" name="sys_pk" value="#<@('#./sys_pk')>")
                 input(type="hidden" name="sys_recver" value="#<@('#./sys_recver')>")
 
+                #!
+                if not(@is_new)
+                {
+                    #$
+                    div(class="d-flex justify-content-end")
+                    {
+                        h6(class="mb-0"){"ID: #<@('$./sys_guid')>"}
+                    }
+                }
+                #$
+
                 div(class="row gx-1 gx-sm-2 gx-md-3 gx-lg-4")
                 {
                     div(class="col-12 col-sm-6")
                     {
-                        label(class="form-label" "for"="nombre"){"Nombre:"}
+                        label(class="form-label fw-bold" "for"="nombre"){"Nombre:"}
                         input(class="form-control rounded-0" type="text" name="nombre" value="#<@('$./nombre')>" required="")
                     }
                     div(class="col-3 col-sm-2 col-md-1")
@@ -86,6 +97,75 @@ module "form.dk"
                     {
                         label(class="form-label" "for"="color"){"Texto:"}
                         input(class="form-control form-control-color rounded-0" type="color" name="color" value="#<@('$./color')>")
+                    }
+
+                    div(class="col-12")
+                    {
+                        span{"Redirección 1"}
+                        div(class="row")
+                        {
+                            div(class="col-sm-4 col-lg-3") {
+                                input(class="form-control rounded-0" type="text" name="link1_text" value="#<@('$./link1_text')>" id="link1_text" maxlength="15" placeholder="Texto")
+                            }
+                            div(class="col-sm-8 col-lg-9") {
+                                input(class="form-control rounded-0" type="url" name="link1" value="#<@('$./link1')>" id="link1" maxlength="512" placeholder="URL")
+                            }
+                        }
+                        div(class="form-check form-check-inline")
+                        {
+                            #!
+                            target_blank = parse.bool(@("$./link1_target_blank"))
+                            checked = ifstr(target_blank, "checked", "")
+                            #$
+                            input(class="form-check-input" type="checkbox" name="link1_target_blank" id="link1_target_blank" "#<checked>"="")
+                            label(class="form-check-label" "for"="link1_target_blank"){"Abrir enlace en nueva pestaña"}
+                        }
+                    }
+
+                    div(class="col-12")
+                    {
+                        span{"Redirección 2"}
+                        div(class="row")
+                        {
+                            div(class="col-sm-4 col-lg-3") {
+                                input(class="form-control rounded-0" type="text" name="link2_text" value="#<@('$./link2_text')>" id="link2_text" maxlength="15" placeholder="Texto")
+                            }
+                            div(class="col-sm-8 col-lg-9") {
+                                input(class="form-control rounded-0" type="url" name="link2" value="#<@('$./link2')>" id="link2" maxlength="512" placeholder="URL")
+                            }
+                        }
+                        div(class="form-check form-check-inline")
+                        {
+                            #!
+                            target_blank = parse.bool(@("$./link2_target_blank"))
+                            checked = ifstr(target_blank, "checked", "")
+                            #$
+                            input(class="form-check-input" type="checkbox" name="link2_target_blank" id="link2_target_blank" "#<checked>"="")
+                            label(class="form-check-label" "for"="link2_target_blank"){"Abrir enlace en nueva pestaña"}
+                        }
+                    }
+
+                    div(class="col-12")
+                    {
+                        span{"Redirección 3"}
+                        div(class="row")
+                        {
+                            div(class="col-sm-4 col-lg-3") {
+                                input(class="form-control rounded-0" type="text" name="link3_text" value="#<@('$./link3_text')>" id="link3_text" maxlength="15" placeholder="Texto")
+                            }
+                            div(class="col-sm-8 col-lg-9") {
+                                input(class="form-control rounded-0" type="url" name="link3" value="#<@('$./link3')>" id="link3" maxlength="512" placeholder="URL")
+                            }
+                        }
+                        div(class="form-check form-check-inline")
+                        {
+                            #!
+                            target_blank = parse.bool(@("$./link3_target_blank"))
+                            checked = ifstr(target_blank, "checked", "")
+                            #$
+                            input(class="form-check-input" type="checkbox" name="link3_target_blank" id="link3_target_blank" "#<checked>"="")
+                            label(class="form-check-label" "for"="link3_target_blank"){"Abrir enlace en nueva pestaña"}
+                        }
                     }
                 }
             }            

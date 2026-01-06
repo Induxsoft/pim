@@ -139,6 +139,7 @@ module "form.dk"
                         h6{"ID: #<@@(entity,'$sys_guid')>"}
                     }
                 }
+                #$
                 input(type="hidden" name="sys_pk" value="#<@@(entity,'#sys_pk')>")
                 input(type="hidden" name="sys_recver" value="#<@@(entity,'#sys_recver')>")
                 
@@ -200,6 +201,11 @@ module "form.dk"
                         {
                             label(class="form-label" "for"="max_duration"){"Duración máxima:"}
                             input(class="form-control form-control-sm rounded-0" type="number" name="max_duration" value="#<fd('max_duration','nm',entity)>" id="max_duration" min="15" max="120")
+                        }
+                        div(class="col-4 col-md-3" title="Minutos de anticipación para agendar un evento")
+                        {
+                            label(class="form-label" "for"="minutes_in_advance"){"Minutos de anticipación:"}
+                            input(class="form-control form-control-sm rounded-0" type="number" name="minutes_in_advance" value="#<fd('minutes_in_advance','nm',entity)>" id="minutes_in_advance")
                         }
                         div(class="col-12" title="Lista de recesos/descansos en el día laboral")
                         {

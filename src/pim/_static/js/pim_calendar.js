@@ -102,7 +102,6 @@ var calendar = {
 
         setParameter(key,value)
         {
-            console.log(key,value);
             this.schedule.setAttribute(key,value);
 
             let url = window.location.href;
@@ -152,44 +151,84 @@ var calendar = {
         toggleModalEvent(data=null)
         {
             const modalDialog = this.modal.querySelector('.modal-dialog');
-            const modalContent = this.modal.querySelector('.modal-content');
-            const modalFooter = this.modal.querySelector('.modal-footer');
-            const modalTitle = this.modal.querySelector('.modal-title');
             const eventInfo = this.modal.querySelector('#event-info');
+            const isNew = (data == null);
+
+            this.setEventLinks(data);
+            this.setModalContent(data);
+            this.setModalFooter(data);
+
+            if (isNew) {
+                modalDialog.classList.remove('modal-md');
+                modalDialog.classList.add('modal-lg');
+            }
+            else {
+                modalDialog.classList.remove('modal-lg');
+                modalDialog.classList.add('modal-md');
+            }
+            
+            this.form.classList.toggle('d-none',!isNew);
+            eventInfo.hidden = isNew;
+            this.selected = data;
+        },
+        setEventLinks(data)
+        {
+            const dropLinks = document.getElementById('dm-links');
+            dropLinks.hidden = (data == null);
+
+            const links = dropLinks.querySelector('ul');
+            let temp = '<li><a class="dropdown-item" href="@url" target="@target">@text</a></li>';
+            links.innerHTML = "";
+            
+            if (data?.link1)
+            {
+                let target = (data.link1_target_blank) ? "_blank" : "_self";
+                let link = temp.replace("@url",data.link1).replace("@text",data.link1_text).replace("@target",target);
+                
+                links.innerHTML += link;
+            }
+            if (data?.link2)
+            {
+                let target = (data.link2_target_blank) ? "_blank" : "_self";
+                let link = temp.replace("@url",data.link2).replace("@text",data.link2_text).replace("@target",target);
+                
+                links.innerHTML += link;
+            }
+            if (data?.link3)
+            {
+                let target = (data.link3_target_blank) ? "_blank" : "_self";
+                let link = temp.replace("@url",data.link3).replace("@text",data.link3_text).replace("@target",target);
+                
+                links.innerHTML += link;
+            }
+        },
+        setModalContent(data)
+        {
+            const modalContent = this.modal.querySelector('.modal-content');
+            const modalTitle = this.modal.querySelector('.modal-title');
             const spnImportant = document.getElementById('spn-important');
             const spnDescription = document.getElementById('spn-description');
             const spnStartDuration = document.getElementById('spn-start-duration');
-            const buttonsNew = modalFooter.querySelectorAll('.btn-new');
-            const buttonsEdt = modalFooter.querySelectorAll('.btn-edt');
-            const showEventInfo = (data != null);
-            
+
             modalContent.style.backgroundColor = data?.backcolor ?? '';
             modalContent.style.color = data?.color ?? '';
             modalTitle.textContent = data?.tipo ?? 'Nuevo evento';
             spnImportant.hidden = !data?.important;
             spnDescription.textContent = data?.caption ?? '';
             spnStartDuration.textContent = this.getStartRange(data?.start, data?.duration);
+        },
+        setModalFooter(data)
+        {
+            const modalFooter = this.modal.querySelector('.modal-footer');
+            const buttonsNew = modalFooter.querySelectorAll('.btn-new');
+            const buttonsEdt = modalFooter.querySelectorAll('.btn-edt');
+            const showEventInfo = (data != null);
 
             buttonsNew.forEach(b => b.hidden = showEventInfo);
             buttonsEdt.forEach(b => b.hidden = !showEventInfo);
-            
-            if (showEventInfo)
-            {
-                modalDialog.classList.remove('modal-lg');
-                modalDialog.classList.add('modal-md');
-                modalFooter.classList.add('justify-content-between');
-            }
-            else
-            {
-                modalDialog.classList.remove('modal-md');
-                modalDialog.classList.add('modal-lg');
-                modalFooter.classList.remove('justify-content-between');
-            }
-
-            this.selected = data;
-            eventInfo.hidden = !showEventInfo;
-            this.form.classList.toggle('d-none',showEventInfo);
+            modalFooter.classList.toggle('justify-content-between',showEventInfo);
         },
+
         loadCalendarEvent(data=null)
         {
             if (!data && !this.selected) return;

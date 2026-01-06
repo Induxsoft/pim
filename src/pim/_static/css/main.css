@@ -2,19 +2,25 @@
 .no-shadow { box-shadow: none !important; }
 .revert-all { all: revert; }
 
-.disabled-all a,
-.disabled-all input,
-.disabled-all select,
-.disabled-all textarea,
-.disabled-all button:not([role="tab"]):not(.page-link),
-.disabled-all input-key,
-.disabled-all edit-table:not([readonly])
+.disabled-all * a:not(.no-disable),
+.disabled-all * input:not(.no-disable),
+.disabled-all * select:not(.no-disable),
+.disabled-all * textarea:not(.no-disable),
+.disabled-all * button:not(.no-disable):not([role="tab"]):not(.page-link),
+.disabled-all * input-key:not(.no-disable),
+.disabled-all * edit-table:not(.no-disable):not([readonly])
 {
     pointer-events: none;
     user-select: none;
     background-color: #e9ecef;
     color: black;
     border: 1px solid #dee2e6;
+    opacity: 1;
+}
+.disabled-all * label
+{
+    pointer-events: none;
+    user-select: none;
     opacity: 1;
 }
 

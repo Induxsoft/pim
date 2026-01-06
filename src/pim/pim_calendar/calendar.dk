@@ -146,6 +146,11 @@ module "form.dk"
                         {
                             div(class="d-flex align-items-center gap-1")
                             {
+                                div(class="dropdown" id="dm-links" hidden="")
+                                {
+                                    button(class="btn btn-sm btn-secondary shadow-none dropdown-toggle" type="button" id="dmb-links" "data-bs-toggle"="dropdown" "aria-expanded"="false"){""}
+                                    ul(class="dropdown-menu" "aria-labelledby"="dmb-links"){""}
+                                }
                                 h5(class="modal-title"){"Nuevo evento"}
                                 span(id="spn-important" hidden=""){"¡importante!"}
                             }
