@@ -25,6 +25,17 @@ module "Funciones de propósito general"
         do _map_function(lib_pim, "induxsoft.calendars.PimEvents", "GetAvailableDates", "GetAvailableDates", "System.String,*System.Object,System.Int32", "*")
     }
 
+    function EndsWith(string,keyword)
+    {
+        string_length = length(string)
+        keyword_length = length(keyword)
+
+        if string_length < keyword_length { return @false }
+        if string_length == keyword_length { return string == keyword }
+
+        return right(string,keyword_length) == keyword
+    }
+
     function date_format(dtm,fmt)
     {
         if dtm == "" { return "" }

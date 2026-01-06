@@ -30,10 +30,16 @@ new sel_duration
     @"text_field": "const"
     @"selected": fd("duration","nm",entity)
     @"datatable*": from.json('[
-        { "id":"15", "const":"15 min" },
-        { "id":"30", "const":"30 min" },
-        { "id":"60", "const":"1 hrs" },
-        { "id":"120", "const":"2 hrs" }
+        { "id":"14", "const":"15 min" },
+        { "id":"29", "const":"30 min" },
+        { "id":"44", "const":"45 min" },
+        { "id":"59", "const":"1 hrs" },
+        { "id":"89", "const":"1.5 hrs" },
+        { "id":"119", "const":"2 hrs" },
+        { "id":"149", "const":"2.5 hrs" },
+        { "id":"179", "const":"3 hrs" },
+        { "id":"209", "const":"3.5 hrs" },
+        { "id":"239", "const":"4 hrs" }
     ]')
     member "attributes"
     {

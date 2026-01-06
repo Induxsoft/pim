@@ -155,7 +155,18 @@ module ":events"
         ref cal = dbr.rec(db,"SELECT start_lab_hour, end_lab_hour, intervalo, breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",p)
 
         success = @@(checkStartRange(db,p),"#success")
-        if success { success = not(IsInBreak(start,@@(cal,"$breaks"))) }
+        if success
+        {
+            sql = "
+            SELECT
+                DATE_FORMAT(DATE_ADD(@start,INTERVAL @duration MINUTE),'%Y-%m-%d %H:%i')
+            FROM pim_calendar
+            WHERE sys_pk = @calendar
+            "
+            finish = dbr.str(db,sql,p)
+
+            success = not(IsInBreak(start,@@(cal,"$breaks"))) && not(IsInBreak(finish,@@(cal,"$breaks")))
+        }
         if success
         {
             weekday = tolower(dbr.str(db,"SELECT DATE_FORMAT(DATE(@start),'%W')",p))
@@ -199,6 +210,7 @@ module ":events"
                 b_dates<@@(itm,"$d")> : @@(itm,"$h")
             }
             // Concatenar las fechas y horas disponibles a la respuesta.
+            only_on_the_hour = parse.bool(@@(params,"$only_on_the_hour"))
             for i = 0; i < list.count(a_dates)
             {
                 date = list.str(a_dates,i)
@@ -208,7 +220,10 @@ module ":events"
                 for j = 0; j < list.count(hours)
                 {
                     hour = list.str(hours,j)
-                    if not(IsInBreak(hour,@@(b_dates,date))) {
+                    
+                    ok = @true
+                    if only_on_the_hour { ok = (only_on_the_hour && EndsWith(hour,":00")) }
+                    if not(IsInBreak(hour,@@(b_dates,date))) && ok {
                         message = message + hour + "\r\n"
                     }
                 }
@@ -224,7 +239,7 @@ module ":events"
     {
         is_new = (@@(params,"$_entity_id") == "_new")
 
-        //code here...
+        if not(is_new) && not(field.exist(data,"entity")) { data<"entity*"> : read(db,params) }
     }
 
     //#region triggerEventAction()
@@ -332,7 +347,8 @@ module ":events"
             if trim(@@(data,"$caption")) == "" { do rise_error(513,"No ha indicado la descripción del evento.") }
             if trim(@@(data,"$start")) == "" { do rise_error(513,"No ha indicado la fecha y hora del evento.") }
 
-            min_duration = parse.num(dbr.vars.get(db,"pim_events_min_duration"))
+            min_duration = dbr.num(db,"SELECT min_duration FROM pim_calendar WHERE sys_pk = @calendar",data)
+            if min_duration < 1 { min_duration = parse.num(dbr.vars.get(db,"pim_events_min_duration")) }
             if @@(data,"#duration") < min_duration { data<"duration"> : min_duration }
 
             ref event_type = dbr.rec(db,"select backcolor, color from pim_events_type where sys_pk = @type",data)

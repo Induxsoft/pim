@@ -70,8 +70,8 @@ var calendar = {
             const btnCancelEvent = document.getElementById("btn-cancel-event");
             const btnCompleteEvent = document.getElementById("btn-complete-event");
 
-            view.addEventListener('change', (e) => this.schedule.setAttribute("view",e.target.value));
-            day.addEventListener('change', (e) => this.schedule.setAttribute("day",e.target.value));
+            view.addEventListener('change', (e) => this.setParameter('view',e.target.value));
+            day.addEventListener('change', (e) => this.setParameter("day",e.target.value));
             btnAdd.addEventListener('click', (e) => this.addEvent());
             btnEdt.addEventListener('click', (e) => this.edtEvent());
             btnDel.addEventListener('click', (e) => this.delEvent());
@@ -98,6 +98,17 @@ var calendar = {
             this.schedule.addEventListener('itemresized', (e) => this.changeDuration(e));
             this.schedule.addEventListener('itemcreated', (e) => this.setEventStyles(e.detail.item,e.detail.element));
             this.schedule.addEventListener('itemupdated', (e) => this.setEventStyles(e.detail.newItem,e.detail.newElement));
+        },
+
+        setParameter(key,value)
+        {
+            console.log(key,value);
+            this.schedule.setAttribute(key,value);
+
+            let url = window.location.href;
+            url = InduxsoftCrudlModel.UrlAddParameter(url,key,value);
+            
+            window.history.replaceState(null,'',url);
         },
 
         changeStatus(newStatus)

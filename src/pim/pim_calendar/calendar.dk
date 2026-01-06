@@ -13,6 +13,7 @@ module "form.dk"
 
     ref calendar = ifnull(@("&./entity"),record.create())
     ref events = ifnull(@("&./events"),list.create())
+    ref params = @("&parameters")
 
 	@_entities_type = @("$parameters/_entities_type")
 	@_entity_id = @("$parameters/_entity_id")
@@ -22,6 +23,8 @@ module "form.dk"
     @modal_id = "modal-event"
     @schedule_id = ""+@_entities_type
 
+    view = field.dstr(params,"view","week")
+    day = field.dstr(params,"day",date_str(now(),'yyyy-MM-dd'))
     breaks = @@(calendar,"$breaks")
     weekend = @@(calendar,"$weekend")
     holidays = @@(calendar,"$holidays")
@@ -32,6 +35,26 @@ module "form.dk"
     increment = 15
     min_duration = @@(calendar,"#min_duration")
     max_duration = @@(calendar,"#max_duration")
+
+    new sel_view
+    {
+        @"id": "view"
+        @"value_field": "id"
+        @"text_field": "const"
+        @"selected": view
+        @"datatable*": from.json('[
+            {"id":"day", "const":"Día"},
+            {"id":"week", "const":"Semana"},
+            {"id":"2week", "const":"Dos semanas"},
+            {"id":"4week", "const":"Cuatro semanas"},
+            {"id":"6week", "const":"Seis semanas"}
+        ]')
+        member "attributes"
+        {
+            @"class": "form-select rounded-0 no-shadow"
+            @"name": "view"
+        }
+    }
 
     function printNavButtons()
     {
@@ -75,19 +98,14 @@ module "form.dk"
                     div(class="input-group input-group-sm")
                     {
                         label(class="input-group-text rounded-0" "for"="view"){"Vista"}
-                        select(class="form-select rounded-0 no-shadow" id="view")
-                        {
-                            option(value="day"){"Día"}
-                            option(value="week" selected=""){"Semana"}
-                            option(value="2week"){"Dos semanas"}
-                            option(value="4week"){"Cuatro semanas"}
-                            option(value="6week"){"Seis semanas"}
-                        }
+                        ##
+                        do uie.dbSelect(sel_view)
+                        ##
                     }
                     div(class="input-group input-group-sm")
                     {
                         label(class="input-group-text rounded-0" "for"="day"){"Día"}
-                        input(class="form-control rounded-0 no-shadow" type="date" value="#<date_str(now(),'yyyy-MM-dd')>" id="day")
+                        input(class="form-control rounded-0 no-shadow" type="date" value="#<day>" id="day")
                     }
                 }
                 div(class="d-flex justify-content-end flex-grow-1")
@@ -104,8 +122,8 @@ module "form.dk"
             
             "custom-schedule"(
                 id="#<@schedule_id>"
-                view="week"
-                day="now"
+                view="#<view>"
+                day="#<day>"
                 breaks="#<breaks>"
                 weekend="#<weekend>"
                 holidays="#<holidays>"
