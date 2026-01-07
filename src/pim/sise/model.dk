@@ -180,6 +180,7 @@ module ":rest"
         ref resp = events.CheckAvailability(db,data)
         if not(@@(resp,"#success")) { return @@(resp,"$message") }
         
+        do field.remove(data,"event_id")
         do field.remove(data,"response_type")
         do field.remove(data,"suggested_days")
         do field.remove(data,"only_on_the_hour")
@@ -228,7 +229,6 @@ module ":rest"
         payload<"calendar*"> : calendar
 
         do field.remove(data,"calendar_id")
-        do field.remove(data,"event_id")
 
         if is_new { return AddEvent(db,params,payload) }
         else { return EdtEvent(db,params,payload) }

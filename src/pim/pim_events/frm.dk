@@ -117,8 +117,12 @@ form(class="px-1" action="./" method="POST" id="#<@form_id>")
         #$
         div(class="col-12")
         {
+            #!
+            disabled = ""
+            if isset("@enable_editing") { disabled = ifstr(@enable_editing,"","disabled") }
+            #$
             label(class="form-label" "for"="caption"){"Descripción:"}
-            textarea(class="form-control rounded-0 no-disable" name="caption" id="caption" rows="5" required=""){"#<fd('caption','tx',entity)>"}
+            textarea(class="form-control rounded-0 no-disable" name="caption" id="caption" rows="5" required="" "#<disabled>"=""){"#<fd('caption','tx',entity)>"}
         }
         div(class="col-12 py-1")
         {
