@@ -118,6 +118,7 @@ module ":rest"
         ref resp = events.CheckAvailability(db,data)
         if not(@@(resp,"#success")) { return @@(resp,"$message") }
         
+        do field.remove(data,"event_id")
         do field.remove(data,"response_type")
         do field.remove(data,"suggested_days")
         do field.remove(data,"only_on_the_hour")
