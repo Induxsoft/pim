@@ -215,18 +215,40 @@ module ":rest"
         if field.exist(params,"only_on_the_hour") { data<"only_on_the_hour"> : @@(params,"$only_on_the_hour") }
         
         if trim(@@(data,"$calendar_id")) == "" { do rise_error(400,"No ha indicado el id del calendario.") }
-        if trim(@@(data,"$start")) == "" { do rise_error(400,"No ha indicado la fecha y hora del evento.") }
+        
+        start = trim(@@(data,"$start"))
+        if start == "" { do rise_error(400,"No ha indicado la fecha y hora del evento.") }
+
+        start = date_format(start,"yyyy-MM-dd HH:mm")
+        if start == "" { do rise_error(400,"No se ha indicado una fecha con formato válido.") }
+
+        if trim(@@(data,"$event_id")) == "" && @@(payload,"$chat_id") != ""
+        {
+            using params
+            {
+                @"chat_id": @@(payload,"$chat_id")
+                @"start": start
+            }
+            // Buscar evento del mismo chat_id en el mismo día.
+            sql = "SELECT sys_guid FROM pim_events WHERE DATE(`start`) = DATE(@start) AND JSON_VALUE(data,'$.chat_id') = @chat_id"
+            found_event_id = dbr.str(db,sql,params)
+            // Establecer evento encontrado para edición
+            data<"event_id"> : found_event_id
+            
+            exception{ do pop_exception() }
+        }
+
         if trim(@@(data,"$event_id")) != ""
         {
             ref event = GetEvent(db,@@(data,"$event_id"))
             payload<"event*"> : event
             is_new = isnull(event)
-        }
+        }        
 
         ref calendar = dbr.rec(db,"select sys_pk, sys_guid, propietario, nombre from pim_calendar where sys_guid=@calendar_id",data)
         if isnull(calendar) { do rise_error(404,"No se encontró datos del calendario.") }
 
-        data<"start"> : date_format(@@(data,"$start"),"yyyy-MM-dd HH:mm")
+        data<"start"> : start
         payload<"calendar*"> : calendar
 
         do field.remove(data,"calendar_id")
