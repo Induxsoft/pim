@@ -246,6 +246,7 @@ module ":events"
                 message = message + date + "\r\n"
                 
                 ref hours = field.obj(available,date)
+                a_hours = ""
                 for j = 0; j < list.count(hours)
                 {
                     hour = list.str(hours,j)
@@ -253,9 +254,12 @@ module ":events"
                     ok = @true
                     if only_on_the_hour { ok = (only_on_the_hour && EndsWith(hour,":00")) }
                     if not(IsInBreak(hour,@@(b_dates,date))) && ok {
-                        message = message + hour + "\r\n"
+                        a_hours = a_hours + hour + "\r\n"
                     }
                 }
+                
+                if a_hours == "" { a_hours = "Sin disponibilidad en esta fecha.\r\n" }
+                message = message + a_hours
             }
         }
 
