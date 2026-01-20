@@ -29,13 +29,38 @@ module ":events"
         t.nombre AS tipo,
         t.link1, t.link1_text, t.link1_target_blank,
         t.link2, t.link2_text, t.link2_target_blank,
-        t.link3, t.link3_text, t.link3_target_blank
+        t.link3, t.link3_text, t.link3_target_blank,
+        c.nombre as name_calendar
     FROM #<@table_name> e
         INNER JOIN pim_events_type t ON e.type = t.sys_pk
+        INNER JOIN pim_calendar c on e.calendar=c.sys_pk
     WHERE e.#<@keyfield> = @_entity_id
     LIMIT 1
     "
     @calendar_query = "SELECT * FROM pim_calendar WHERE #<@pim_calendar_keyfield> = @calendar LIMIT 1"
+
+    @list_query_calendar = "
+    SELECT DISTINCT
+        c.sys_pk,
+        c.sys_guid,
+        c.propietario,
+        c.nombre,
+        u.userid,
+        u.username
+    FROM pim_calendar c
+        INNER JOIN tuser u ON c.propietario = u.sys_pk
+    WHERE
+        NOT IFNULL(c.sys_deleted,0)
+        AND (
+            -- El usuario logeado es el propietario
+            c.propietario = @logged_user_pk
+            -- El usuario logeado es parte del calendario
+            OR (select sys_pk from pim_calendar_per where calendar = c.sys_pk and guid = @logged_user_guid and not ifnull(es_grupo,0) limit 1) > 0
+            -- El usuario logeado es miembro de algún grupo que es parte del calendario
+            OR (select m.sys_pk from pim_calendar_per m inner join usergroup g on m.guid = g.sys_guid inner join user_usergroup_ ug on g.sys_pk = ug.groups where m.calendar = c.sys_pk and ug.users = @logged_user_pk and ifnull(m.es_grupo,0) limit 1) > 0
+        )
+        AND (@search IS NULL OR c.nombre LIKE CONCAT('%',@search,'%'))
+    LIMIT #<@default_max_rows>"
 
     //#region changeStatus()
     function changeStatus(&db,&params,&data)
@@ -457,7 +482,15 @@ module ":events"
         if not(isset("@just_read_entity")) { @just_read_entity = @false }
         if @just_read_entity { return entity.read(db,params) }
 
-        new data { @"entity*": entity.read(db,params) }
+        params<"logged_user_pk"> : GetPkUsr(db,@@(@http_context,"$session/user/uid"))
+        params<"logged_user_guid"> : GetGuidUsr(db,@@(@http_context,"$session/user/uid"))
+
+        new data 
+        { 
+            @"entity*": entity.read(db,params) 
+            @"calendars*":dbr.list(db,ftext(@list_query_calendar),params)
+        }
+        
         do prepareView(db,params,data)
         return data
 
@@ -522,8 +555,23 @@ module ":events"
     {
         @use_transaction = @false
         @just_read_entity = @true
-
+        
         do validateEventAction(db,@@(data,"#calendar"))
+
+        if @@(params,"$action")=="change-calendar"
+        {
+            using params
+            {
+                @"calendar":@@(data,"#calendar")
+                @"start":dbr.str(db,"SELECT TRIM(`start`) _start FROM pim_events WHERE sys_pk=@_entity_id;",params)
+                @"duration":dbr.num(db,"SELECT duration FROM pim_events WHERE sys_pk=@_entity_id;",params)
+            }
+            do CheckAvailability(db,params)
+
+            do dbr.execute(db,"update pim_events set calendar=@calendar where sys_pk=@_entity_id",params)
+            return params
+        }
+        
         do dbr.begin(db)
 
         if not(field.exist(data,@keyfield)) { data<@keyfield> : @@(params,"$_entity_id") }

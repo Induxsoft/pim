@@ -174,12 +174,20 @@ module ":calendar"
     function read(&db,&params)
     {
         do dbr.apps.action.grant("TF10")
-
+        
         if not(isset("@just_read_entity")) { @just_read_entity = @false }
         if @just_read_entity { return entity.read(db,params) }
 
-        new data { @"entity*": entity.read(db,params) }
+        params<"logged_user_pk"> : GetPkUsr(db,@@(@http_context,"$session/user/uid"))
+        params<"logged_user_guid"> : GetGuidUsr(db,@@(@http_context,"$session/user/uid"))
+        
+        new data 
+        { 
+            @"entity*": entity.read(db,params) 
+            @"calendars*":entity.list(db,params)
+        }
         do prepareView(db,params,data)
+        
         return data
 
         exception{ do catch(db,params,@null) }

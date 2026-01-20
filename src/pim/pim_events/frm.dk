@@ -85,8 +85,9 @@ form(class="px-1" action="./" method="POST" id="#<@form_id>")
     if not(is_new)
     {
         #$
-        div(class="d-flex justify-content-end")
+        div(class="d-flex justify-content-between")
         {
+            h6{"#<@@(entity,'$name_calendar')>"}
             h6(class="mb-0"){"ID: #<@@(entity,'$sys_guid')>"}
         }
     }
@@ -104,15 +105,25 @@ form(class="px-1" action="./" method="POST" id="#<@form_id>")
         #!
         if not(is_new)
         {
+            new _p
+            {
+                @"calendars*":@("&./calendars")
+                // @"onlyselect":@true
+                @"value":@@(entity,"#calendar")
+            }
             #$
-            div(class="col-12 col-sm-4 col-md-3 align-self-end")
+            div(class="col-12 col-sm-4 col-md-6 align-self-end d-flex gap-4")
             {
                 div(class="dropdown")
                 {
-                    button(class="btn btn-secondary shadow-none dropdown-toggle" type="button" id="dmb-event-links" "data-bs-toggle"="dropdown" "aria-expanded"="false"){"Enlaces"}
+                    button(class="btn btn-sm btn-secondary shadow-none dropdown-toggle" type="button" id="dmb-event-links" "data-bs-toggle"="dropdown" "aria-expanded"="false"){"Enlaces"}
                     ul(class="dropdown-menu" "aria-labelledby"="dmb-event-links"){$"#<links>"}
                 }
+                #!
+                do createElMoveEvent(_p)
             }
+            #!
+            
         }
         #$
         div(class="col-12")

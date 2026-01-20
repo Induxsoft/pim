@@ -1,0 +1,30 @@
+#include "dkli.dkh"
+#set "meta-xml-declaration" ""
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "webcl.dkh"
+    #include "dbr.apps.dkl"
+	#include "dbr.events.dkl"
+	#include "dbr.security.dkl"
+	#include "dbr.vars.dkl"
+    #include "crudl/entity.dk"
+    #include "pim/_lib/config.dk"
+    #include "pim/_lib/lib.dk"
+    #include "model.dk"
+    #include "pim/pim_events/model.dk"
+    
+    do errordet(@false)
+
+    res= str(rest.EntryPoint("add-event"))
+    
+    exception
+    {
+        res="Ocurrió un error: "+last_error()
+    }
+    
+    do rest.ResponseText(res)
+}

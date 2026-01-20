@@ -12,7 +12,7 @@ module "form.dk"
     do @context.begin(@crud_context)
 
     ref entity = ifnull(@("&./entity"),record.create())
-
+    
 	@_entities_type = @("$parameters/_entities_type")
 	@_entity_id = @("$parameters/_entity_id")
 	@is_new = (@_entity_id == "_new")
@@ -78,6 +78,7 @@ module "form.dk"
             #$
             #include "./frm.dk"
         }
+        #$
         // Resúmenes y datos al pie
         section(id="bottom_area")
         {
@@ -85,9 +86,12 @@ module "form.dk"
             div(id="_custom_area")
             {
                 script(src="#<@js_pim_events>"){""}
+                script(src="#<@js_pim_calendar>"){""}
                 script(type="text/javascript")
                 {$'
-                    document.addEventListener("DOMContentLoaded", () => {
+                    document.addEventListener("DOMContentLoaded", () => 
+                    {
+                        calendar.schedule.selected=#<to.json(entity)>;
                         events.url_bitacora = "#<url_bitacora>";
                         events.form_id = "#<@form_id>";
                         events.init();

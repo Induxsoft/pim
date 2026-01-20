@@ -81,6 +81,8 @@ module "form.dk"
             @"send": @true
         }
     }
+    ref calendars=@("&./calendars")
+    
     // Encapsula a la vista en su totalidad, todo lo que hay antes o después no se considera 
     #$
     div(class="" id="view")
@@ -146,6 +148,15 @@ module "form.dk"
                         {
                             div(class="d-flex align-items-center gap-1")
                             {
+                                #!
+                                new _p
+                                {
+                                    @"hidden":@true
+                                    @"calendars*":calendars
+                                }
+                                do createElMoveEvent(_p)
+                                #$
+                                //no mover
                                 div(class="dropdown" id="dm-links" hidden="")
                                 {
                                     button(class="btn btn-sm btn-secondary shadow-none dropdown-toggle" type="button" id="dmb-links" "data-bs-toggle"="dropdown" "aria-expanded"="false"){""}
@@ -172,10 +183,32 @@ module "form.dk"
                             button(class="btn btn-sm btn-primary btn-new rounded-0" type="button" id="btn-add-event"){"Aceptar"}
                             button(class="btn btn-sm btn-light btn-new rounded-0 border" type="button" "data-bs-dismiss"="modal"){"Cancelar"}
                             
-                            label(class="btn-edt fw-bold cursor-pointer" id="btn-complete-event" hidden=""){"Completado"}
-                            label(class="btn-edt fw-bold cursor-pointer" id="btn-cancel-event" hidden=""){"Cancelado"}
-                            label(class="btn-edt fw-bold cursor-pointer" id="btn-del-event" hidden=""){"Eliminar"}
-                            label(class="btn-edt fw-bold cursor-pointer" id="btn-edt-event" hidden=""){"Editar"}
+                            label(class="btn-edt fw-bold cursor-pointer" id="btn-complete-event" hidden="" title="Completar")
+                            {
+                                img(src="/$/pim/icons/pim_complete.png" height="30" width="30")
+                                // "Completado"
+                            }
+                            label(class="btn-edt fw-bold cursor-pointer" id="btn-cancel-event" hidden="" title="Cancelar evento")
+                            {
+                                img(src="/$/pim/icons/pim_cancel.png" height="30" width="30")
+                                // "Cancelado"
+                            }
+                            label(class="btn-edt fw-bold cursor-pointer" id="btn-del-event" hidden="" title="Eliminar evento")
+                            {
+                                img(src="/$/pim/icons/pim_delete.png" height="28" width="28")
+                                // "Eliminar"
+                            }
+                            // label(class="btn-edt fw-bold cursor-pointer" id="btn-move-event" hidden="" title="Mover evento")
+                            // {
+                            //     img(src="/$/pim/icons/pim_move_2.png" height="33" width="33")
+                            //     // "Mover"
+                            // }
+
+                            label(class="btn-edt fw-bold cursor-pointer" id="btn-edt-event" hidden="" title="Editar evento")
+                            {
+                                img(src="/$/pim/icons/pim_edit.png" height="28" width="28")
+                                // "Editar"
+                            }
                         }
                     }
                 }

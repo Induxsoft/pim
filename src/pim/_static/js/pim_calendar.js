@@ -69,6 +69,7 @@ var calendar = {
             const btnDel = document.getElementById("btn-del-event");
             const btnCancelEvent = document.getElementById("btn-cancel-event");
             const btnCompleteEvent = document.getElementById("btn-complete-event");
+            this.new_calendar=document.getElementById("new_calendar");
 
             view.addEventListener('change', (e) => this.setParameter('view',e.target.value));
             day.addEventListener('change', (e) => this.setParameter("day",e.target.value));
@@ -117,6 +118,53 @@ var calendar = {
             this.edtEvent("change-status", {status:newStatus}, (res) => {
                 this.schedule.renderEvent(res);
                 tools.hideModal(this.modal_id);
+            });
+        },
+        changeCalendar(value_ant)
+        {
+            if(Number(value_ant) < 1 && this.value_ant_calendar){value_ant=this.value_ant_calendar;}
+
+            if(!this.new_calendar)this.new_calendar=document.getElementById("new_calendar");
+
+            if(!this.new_calendar || !this.selected)return;
+            
+            if(!this.new_calendar.reportValidity())
+            {
+                this.new_calendar.value=value_ant;
+                return;
+            }
+
+            if(this.new_calendar.value.trim()=="")
+            {
+                alert("Debe seleccionar un calendario");
+                this.new_calendar.value=value_ant;
+                return;
+            }
+            
+            this.keyfield="sys_pk";
+
+            let calendar=Number(this.new_calendar.value);
+            if(Number(this.selected["calendar"]??0) == calendar)
+            {
+                alert("El evento ya se encuentra en el calendario indicado");
+                this.new_calendar.value=value_ant;
+                return;
+            }
+
+            if(!confirm("¿Está seguro de realizar el proceso?"))
+            {
+                this.new_calendar.value=value_ant;
+                return;
+            }
+            
+            this.edtEvent("change-calendar", {calendar:calendar}, (res) => 
+            {
+                if (!res)
+                {
+                    alert("Ocurrió un error, vuelva intentarlo");return;
+                    this.new_calendar.value=value_ant;
+                }
+                window.location.reload();
             });
         },
         changeStart(e)
@@ -174,7 +222,9 @@ var calendar = {
         setEventLinks(data)
         {
             const dropLinks = document.getElementById('dm-links');
+            const dm_calendars=document.getElementById("dm-calendars");
             dropLinks.hidden = (data == null);
+            if(dm_calendars)dm_calendars.hidden=(data == null);
 
             const links = dropLinks.querySelector('ul');
             let temp = '<li><a class="dropdown-item" href="@url" target="@target">@text</a></li>';
@@ -216,6 +266,8 @@ var calendar = {
             spnImportant.hidden = !data?.important;
             spnDescription.textContent = data?.caption ?? '';
             spnStartDuration.textContent = this.getStartRange(data?.start, data?.duration);
+            this.value_ant_calendar=data?.calendar??-1;
+            if(this.new_calendar)this.new_calendar.value=this.value_ant_calendar;
         },
         setModalFooter(data)
         {

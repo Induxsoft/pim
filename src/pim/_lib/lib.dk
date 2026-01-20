@@ -91,4 +91,73 @@ module "Funciones de propósito general"
         new params { @"id": usrId }
         return dbr.str(db,"SELECT usr.sys_guid FROM tuser AS usr LEFT JOIN sys_session AS ss ON usr.sys_pk = ss.iuser WHERE usr.sys_guid = @id OR usr.userid = @id OR ss.sys_guid = @id",params)
     }
+    createselect::&calendars,value
+    {
+        #$
+        div(class="w-100")
+        {
+            small(class="fw-bold"){"Calendarios:"}
+            select(class="form-select form-select-sm" name="new_calendar" id="new_calendar" required="true" onchange="")
+            {
+                option(value="-1" selected="" disabled="" hidden=""){"(Seleccionar)"}
+                #!
+                for i = 0; i < @count(calendars)
+                {
+                    ref calendar=@item(calendars,i)
+                    #$
+                    option(value="#<@@(calendar,'#sys_pk')>" "#<ifstr(value==@@(calendar,'$sys_pk'),'selected','')>"=""){"#<@@(calendar,'$nombre')>"}
+                }
+                #$
+            }
+        }
+        
+        #!
+    }
+    function createElMoveEvent(&data)
+    {
+        ref calendars=@@(data,"&calendars")
+        hidden=parse.bool(@@(data,"$hidden"))
+        caption=field.dstr(data,"caption","Mover a")
+        onlyselect=parse.bool(@@(data,"$onlyselect"))
+        value=field.dstr(data,"value","-1")
+        if onlyselect
+        {
+            do createselect(calendars,value)
+        }
+        else 
+        {
+            #$
+            div(class="dropdown" id="dm-calendars" "#<ifstr(hidden,'hidden','')>"="")
+            {
+                button(class="btn btn-sm btn-secondary shadow-none dropdown-toggle" type="button" id="dmb-calendars" "data-bs-toggle"="dropdown" "aria-expanded"="false")
+                {
+                    // img(src="/$/pim/icons/pim_move_2.png" height="20" width="22")
+                    $"#<caption>"
+                }
+                ul(class="dropdown-menu" "aria-labelledby"="dmb-calendars" style="width:20rem;")
+                {
+                    div(class="p-2")
+                    {
+                        #!
+                        do createselect(calendars,value)
+                    }
+                }
+            }
+            #!
+        }
+        #$
+        script(type="text/javascript")
+        {$'
+            document.addEventListener("DOMContentLoaded",(e)=>
+            {
+                let new_calendar=document.getElementById("new_calendar");
+                if(new_calendar)new_calendar.addEventListener("change",()=>
+                {
+                    let value_ant="#<value>";
+                    calendar.schedule.changeCalendar(value_ant);
+                });
+            });
+        '}
+        #!
+    }
 }
