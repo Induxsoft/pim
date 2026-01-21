@@ -577,7 +577,7 @@ module ":events"
             do dbr.commit(db)
             return params
         }
-        
+        do field.remove(data,"new_calendar")
         do dbr.begin(db)
 
         if not(field.exist(data,@keyfield)) { data<@keyfield> : @@(params,"$_entity_id") }
