@@ -161,8 +161,9 @@ var calendar = {
             {
                 if (!res)
                 {
-                    alert("Ocurrió un error, vuelva intentarlo");return;
                     this.new_calendar.value=value_ant;
+                    // alert("Ocurrió un error, vuelva intentarlo");
+                    return;
                 }
                 window.location.reload();
             });

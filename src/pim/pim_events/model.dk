@@ -566,9 +566,15 @@ module ":events"
                 @"start":dbr.str(db,"SELECT TRIM(`start`) _start FROM pim_events WHERE sys_pk=@_entity_id;",params)
                 @"duration":dbr.num(db,"SELECT duration FROM pim_events WHERE sys_pk=@_entity_id;",params)
             }
-            do CheckAvailability(db,params)
+            data<"type">:dbr.num(db,"select type from pim_events WHERE sys_pk=@_entity_id;",params) //montar
+            do dbr.begin(db)
+            
+            do validateFields(db,params,data)
+            ref resp= CheckAvailability(db,params)
 
+            if not(@@(resp,"#success")){do rise_error(500,@@(resp,"$message"))}
             do dbr.execute(db,"update pim_events set calendar=@calendar where sys_pk=@_entity_id",params)
+            do dbr.commit(db)
             return params
         }
         
