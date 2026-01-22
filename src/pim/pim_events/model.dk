@@ -292,6 +292,13 @@ module ":events"
         return response
     }
 
+    //#region changeColor()
+    function changeColor(&db,&params,&data)
+    {
+        params<"backcolor">:@@(data,"$backcolor")
+        do dbr.execute(db,"UPDATE pim_events set backcolor=@backcolor where sys_pk=@_entity_id",params)
+    }
+    //#endregion
     //#region parseEventLinks()
     function parseEventLinks(&db,&event)
     {
@@ -434,7 +441,7 @@ module ":events"
             if @@(data,"$color") == "" { data<"color"> : @@(event_type,"$color") }
         }
         if field.exist(data,"important"){ data<"important"> : parse.bool(@@(data,"$important")) }
-        if field.exist(data,"status")
+        if field.exist(data,"status") && @@(data,"#status") > 0
         {
             allow = dbr.num(db,ftext("SELECT `status` NOT IN (#<@stt_event_hecho>,#<@stt_event_cancelado>) FROM #<@table_name> WHERE #<@keyfield> = @_entity_id"),params)
             if not(allow) { do rise_error(513,"No es posible cambiar el estado del evento.") }

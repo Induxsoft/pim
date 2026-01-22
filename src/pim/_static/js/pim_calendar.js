@@ -65,10 +65,11 @@ var calendar = {
             const view = document.getElementById("view");
             const day = document.getElementById("day");
             const btnAdd = document.getElementById("btn-add-event");
+            this.btn_vigent_event=document.getElementById("btn-vigent-event");
             const btnEdt = document.getElementById("btn-edt-event");
             const btnDel = document.getElementById("btn-del-event");
-            const btnCancelEvent = document.getElementById("btn-cancel-event");
-            const btnCompleteEvent = document.getElementById("btn-complete-event");
+            this.btnCancelEvent = document.getElementById("btn-cancel-event");
+            this.btnCompleteEvent = document.getElementById("btn-complete-event");
             this.new_calendar=document.getElementById("new_calendar");
 
             view.addEventListener('change', (e) => this.setParameter('view',e.target.value));
@@ -76,9 +77,9 @@ var calendar = {
             btnAdd.addEventListener('click', (e) => this.addEvent());
             btnEdt.addEventListener('click', (e) => this.edtEvent());
             btnDel.addEventListener('click', (e) => this.delEvent());
-            btnCancelEvent.addEventListener('click', (e) => this.changeStatus(99));
-            btnCompleteEvent.addEventListener('click', (e) => this.changeStatus(1));
-
+            this.btnCancelEvent.addEventListener('click', (e) => this.changeStatus(99));
+            this.btnCompleteEvent.addEventListener('click', (e) => this.changeStatus(1));
+            if(this.btn_vigent_event)this.btn_vigent_event.addEventListener("click",(e)=>this.changeStatus(0));
             this.modal.addEventListener('show.bs.modal', (e) => {
                 this.form.elements['duration'].value = this.schedule.min_duration;
                 tools.trigger('select[id="type"]','change');
@@ -115,8 +116,15 @@ var calendar = {
         {
             if (newStatus==99 && !confirm("¿Esta seguro que de desea cancelar el evento?")) return;
 
-            this.edtEvent("change-status", {status:newStatus}, (res) => {
-                this.schedule.renderEvent(res);
+            this.edtEvent("change-status", {status:newStatus}, (res) => 
+            {
+                if(calendar?.schedule?.selected)
+                {
+                    calendar.schedule.selected["status"]=newStatus;
+                    res=calendar.schedule.selected;
+                }
+
+                this.schedule.save(res);
                 tools.hideModal(this.modal_id);
             });
         },
@@ -260,7 +268,7 @@ var calendar = {
             const spnImportant = document.getElementById('spn-important');
             const spnDescription = document.getElementById('spn-description');
             const spnStartDuration = document.getElementById('spn-start-duration');
-
+            
             modalContent.style.backgroundColor = data?.backcolor ?? '';
             modalContent.style.color = data?.color ?? '';
             modalTitle.textContent = data?.tipo ?? 'Nuevo evento';
@@ -269,6 +277,28 @@ var calendar = {
             spnStartDuration.textContent = this.getStartRange(data?.start, data?.duration);
             this.value_ant_calendar=data?.calendar??-1;
             if(this.new_calendar)this.new_calendar.value=this.value_ant_calendar;
+            
+            if(this.btn_vigent_event)
+            {
+                this.btnCompleteEvent.classList.remove("d-none");
+                this.btnCancelEvent.classList.remove("d-none");
+                this.btn_vigent_event.classList.add("d-none");
+
+                switch (data?.status??-1)
+                {
+                    case 1:
+                        this.btnCompleteEvent.classList.add("d-none");
+                        this.btn_vigent_event.classList.remove("d-none");
+                        this.btnCancelEvent.classList.add("d-none");
+                    break;
+                    case 99:
+                        this.btnCancelEvent.classList.add("d-none");
+                        this.btnCompleteEvent.classList.add("d-none");
+                        this.btn_vigent_event.classList.remove("d-none");
+                        break;
+                }
+            }
+            
         },
         setModalFooter(data)
         {
@@ -296,12 +326,16 @@ var calendar = {
         },
         setEventStyles(data,element)
         {
+            if(data.backcolor)element.style.backgroundColor=data.backcolor;
+
             const content = element.querySelector('.content');
-            if (data.important)
+            
+            content.style.cssText="";
+            content.textContent =data.caption;
+            if (data.important){content.style.cssText = `font-weight:bold;`;}
+            
+            switch (data.status) 
             {
-                content.style.cssText = `font-weight:bold;`;
-            }
-            switch (data.status) {
                 case 0:
                     break;
                 case 1:

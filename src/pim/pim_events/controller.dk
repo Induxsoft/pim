@@ -32,5 +32,10 @@ module "EventsController"
             point @read to events.checkStartRange
             break
         }
+        case "change-color"
+        {
+            point @update to events.changeColor
+            break
+        }
     }
 }

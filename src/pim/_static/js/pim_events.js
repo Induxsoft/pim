@@ -71,5 +71,26 @@ var events = {
             return;
         }
         WebShell.Panels.Show(WebShell.Panels.Const.Right,this.url_bitacora);
+    },
+    selectColor(backcolor,event)
+    {
+        if(!calendar?.schedule?.modal_id)return;
+        if(!calendar?.schedule?.selected)return;
+
+        let target=document.getElementById(calendar.schedule.modal_id+"-content");
+        let data={backcolor:backcolor}
+
+        let url = "/!/pim/events/"+calendar.schedule.selected.sys_pk+"/?action=change-color";
+
+        InduxsoftCrudlModel.InvokeService(url, data,
+            (resp) => 
+            { 
+                calendar.schedule.selected["backcolor"]=backcolor;
+                calendar.schedule.schedule.save(calendar.schedule.selected);
+                target.style.background=backcolor; 
+            },
+            (error) => { alert(error.message??error)},
+            "PATCH", false
+        );
     }
 }
