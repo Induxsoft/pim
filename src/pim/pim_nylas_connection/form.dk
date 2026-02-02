@@ -1,0 +1,178 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "../_lib/config.dk"
+
+    do @context.begin(@crud_context)
+
+    ref calendar = @("&./_calendar")
+
+    @_entities_type = @("$parameters/_entities_type")
+	@_entity_id = @("$parameters/_entity_id")
+	@is_new = (@_entity_id == "_new")
+    @form_id = "form-cnn"
+    @calendar_key = @@(calendar,"$"+@pim_calendar_keyfield)
+    
+    if @calendar_key == "" { @calendar_key = @("$parameters/calendar_id") }
+
+    url_referer = @("$http/request/headers/HTTP_REFERER")
+    url_exit = replace(@pim_calendar_sync, "@_entity_id", @calendar_key)
+    url_schedule = replace(@pim_calendar_see, "@_entity_id", @calendar_key)
+
+    form_nylas_cloud = (url_referer != "" && contains(url_referer,"nylas-cloud"))
+    hide_top_area = (@is_new || form_nylas_cloud)
+
+    function printNavButtons()
+    {
+        cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners no-shadow"
+        #$
+        button(class="#<cls>" type="submit" form="#<@form_id>" title="Guardar"){"Guardar"}
+        #!
+    }
+    point buttons to printNavButtons
+    new nav_config
+    {
+        @"title": ifstr(@is_new, "Conectar", "Editar") + " calendario"
+        @"urlexit": url_exit
+        @"buttons*": buttons
+        
+        member @"hidden"
+        {
+            @"copy": @true
+            @"csv": @true
+            @"print": @true
+            @"send": @true
+        }
+    }
+    #$
+    div(class="container" id="view")
+    {
+        section(class="#<ifstr(hide_top_area,'d-none','')>" id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+
+        section(id="work_area") //style="overflow-y:auto; overflow-x:hidden;"
+        {
+            #!
+            error = @("$error/message")
+            if error != ""
+            {
+                #$
+                div(class="alert alert-danger alert-dismissible fade show mb-2 pb-1" role="alert")
+                {
+                    div(class="w-100 overflow-auto pb-2"){$"#<error>"}
+                    button(type="button" class="btn-close" "data-bs-dismiss"="alert" "aria-label"="Close"){""}
+                }
+            }
+            #$
+            form(action="" method="POST" id="#<@form_id>")
+            {
+                input(type="hidden" name="sys_pk" value="#<@('#./sys_pk')>")
+                input(type="hidden" name="sys_recver" value="#<@('#./sys_recver')>")
+                input(type="hidden" name="calendar_id" value="#<@('$./calendar_id')>")
+
+                #!
+                if @is_new
+                {
+                    #$
+                    div(class="d-flex justify-content-center py-4")
+                    {
+                        button(class="btn btn-lg btn-success" type="submit"){"Continuar"}
+                    }
+                }
+                #!
+                else if form_nylas_cloud
+                {
+                    #$
+                    div(class="alert alert-success text-center my-2 py-4" role="alert")
+                    {
+                        p{"Se ha conectado el calendario"}
+                        a(class="btn btn-lg btn-warning" href="#<url_schedule>"){"Empezar"}
+                    }
+                }
+                #!
+                else
+                {
+                    #$
+                    div(class="row")
+                    {
+                        div(class="col-sm-8 col-md-6 col-lg-4")
+                        {
+                            label(class="form-label" "for"="external_name"){"Nombre para la conexión:"}
+                            input(class="form-control" type="text" name="external_name" value="#<@('$./external_name')>" id="external_name" maxlength="32")
+                        }
+                        div(class="w-100"){""} //breakpoint
+                        div(class="col-md-6")
+                        {
+                            #!
+                            checked = ifstr(@("#./send_events"), "checked", "")
+                            #$
+                            div(class="form-check form-check-inline mt-2")
+                            {
+                                input(class="form-check-input" type="checkbox" name="send_events" id="send_events" "#<checked>"="")
+                                label(class="form-check-label" "for"="send_events"){"Los eventos del calendario de v12 se envían al calendario externo"}
+                            }
+                        }
+                        div(class="col-md-6")
+                        {
+                            #!
+                            checked = ifstr(@("#./receive_events"), "checked", "")
+                            #$
+                            div(class="form-check form-check-inline mt-2")
+                            {
+                                input(class="form-check-input" type="checkbox" name="receive_events" id="receive_events" "#<checked>"="")
+                                label(class="form-check-label" "for"="receive_events"){"Los eventos del calendario externo deben ser procesados en v12"}
+                            }
+                        }
+                        div(class="col-md-6")
+                        {
+                            #!
+                            checked = ifstr(@("#./external_priority"), "checked", "")
+                            #$
+                            div(class="form-check form-check-inline mt-2")
+                            {
+                                input(class="form-check-input" type="checkbox" name="external_priority" id="external_priority" "#<checked>"="")
+                                label(class="form-check-label" "for"="external_priority"){"Antes de agendar en v12 debe confirmarse disponibilidad en el calendario externo"}
+                            }
+                        }
+                        div(class="col-md-6")
+                        {
+                            #!
+                            checked = ifstr(@("#./disabled"), "checked", "")
+                            #$
+                            div(class="form-check form-check-inline mt-2")
+                            {
+                                input(class="form-check-input" type="checkbox" name="disabled" id="disabled" "#<checked>"="")
+                                label(class="form-check-label" "for"="disabled"){"Suspender la sincronización bidireccional y verificaciones externas"}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        section(id="bottom_area")
+        {
+            //////////////////////////////////////////////////////////////////
+            div
+            {
+                script(type="text/javascript")
+                {$'
+                    document.addEventListener("DOMContentLoaded", () => {
+                        // code...
+                    });
+                '}
+            }
+        }
+    }
+    #!
+
+    do @context.end()
+}

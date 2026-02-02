@@ -113,30 +113,50 @@ module ":calendar"
     function prepareView(&db,&params,&data)
     {
         is_new = (@@(params,"$_entity_id") == "_new")
-        
-        if @@(params,"$action") == "view-calendar"
-        {
-            ref events = dbr.list(db,@events_query,params)
-            for i = 0; i < list.count(events)
-            {
-                ref event = list.obj(events,i)
-                do parseEventLinks(db,event)
-            }
 
-            data<"events*"> : events
-        }
-        else
+        switch @@(params,"$_view")
         {
-            propietario = 0
-            if field.exist(data,"form")
+            case "schedule"
             {
-                propietario = @@(data,"#form/propietario")
+                ref events = dbr.list(db,@events_query,params)
+                for i = 0; i < list.count(events)
+                {
+                    ref event = list.obj(events,i)
+                    do parseEventLinks(db,event)
+                }
+
+                data<"events*"> : events
+                data<"calendars*"> : entity.list(db,params)
+                break
             }
-            else if field.exist(data,"entity")
+            case "sync"
             {
-                propietario = @@(data,"#entity/propietario")
+                data<"connections*"> : dbr.list(db,ftext("
+                SELECT
+                    c.#<@pim_calendar_keyfield> AS calendar_key,
+                    cnn.#<@pim_nylas_keyfield> AS connection_key,
+                    cnn.external_name,
+                    IF(cnn.disabled,'No','Sí') AS active
+                FROM pim_calendar c
+                    INNER JOIN pim_nylas_connection cnn ON cnn.calendar_id = c.sys_guid
+                WHERE c.#<@pim_calendar_keyfield> = @_entity_id
+                "),params)
+                break
             }
-            data<"propietario*"> : getOwner(db,propietario)
+            default
+            {
+                propietario = 0
+                if field.exist(data,"form")
+                {
+                    propietario = @@(data,"#form/propietario")
+                }
+                else if field.exist(data,"entity")
+                {
+                    propietario = @@(data,"#entity/propietario")
+                }
+                data<"propietario*"> : getOwner(db,propietario)
+                break
+            }
         }
     }
 
@@ -183,8 +203,7 @@ module ":calendar"
         
         new data 
         { 
-            @"entity*": entity.read(db,params) 
-            @"calendars*":entity.list(db,params)
+            @"entity*": entity.read(db,params)
         }
         do prepareView(db,params,data)
         

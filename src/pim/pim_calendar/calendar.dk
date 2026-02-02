@@ -59,9 +59,13 @@ module "form.dk"
     function printNavButtons()
     {
         cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners no-shadow"
+
         edit_url = replace(@pim_calendar_edt,"@_entity_id",@_entity_id)
         usrs_url = replace(@pim_calendar_per,"@_entity_id",@_entity_id)
+        sync_url = replace(@pim_calendar_sync,"@_entity_id",@_entity_id)
+
         #$
+        a(class="#<cls>" href="#<sync_url>" title="Sincronizar"){$"#<@ICON_SYNC>"}
         a(class="#<cls>" href="#<edit_url>" title="Editar"){$"#<@ICON_EDIT>"}
         a(class="#<cls>" href="#<usrs_url>" title="Miembros"){$"#<@ICON_PEOPLE>"}
         #!

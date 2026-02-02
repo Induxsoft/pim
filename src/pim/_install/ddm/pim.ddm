@@ -104,4 +104,19 @@ model "pim"
         @"link3_text" string(15)
         @"link3_target_blank" bool
     }
+
+    entity "pim_nylas_connection" : "TableModel"
+    {
+        // El 'sys_guid' es el token_datos_v12 (state)
+        @"service_id" string(32) required // Id de servicio de V12
+        @"user_id" string(32) required // Id del usuario que realizó la conexión
+        @"grant_id" string(36) // Id de conexión de Nylas
+        @"nylas_token" string(1024) // Token de larga duración de la conexión oauth
+        @"calendar_id" string(32) required // Id del calendario de V12
+        @"external_name" string(32) // Nombre 'amigable' para la conexión del calendario
+        @"send_events" bool // Indica si los eventos del calendario de v12 se envían al calendario externo
+        @"receive_events" bool // Indica si los eventos del calendario externo deben ser procesados en v12
+        @"external_priority" bool // Indica si antes de agendar en v12 debe confirmarse disponibilidad en el externo
+        @"disabled" bool // true=se suspende la sincronización bidireccional y verificaciones externas
+    }
 }

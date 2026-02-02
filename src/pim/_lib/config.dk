@@ -13,23 +13,27 @@ module "Variables globales"
 	@js_pim_calendar = "/$/pim/js/pim_calendar.js"
 	@js_pim_events = "/$/pim/js/pim_events.js"
 	@js_pim_members = "/$/pim/js/pim_members.js"
+	@js_modal_iframe = "/$/pim/js/modaliframe.js"
 	@js_choices = "https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"
 	@js_flatpickr = "https://cdn.jsdelivr.net/npm/flatpickr"
 
 	@url_search_users = "/!/pim/calendar/?action=search-users&search=@search"
 	@url_search_groups = "/!/pim/calendar/?action=search-groups&search=@search"
+	@url_get_nylas_oauth = "https://nylas-cloud.api.induxsoft.net/?apikey=@apikey&state=@state"
 
 	@pim_calendar_keyfield = "sys_pk"
 	@pim_events_keyfield = "sys_pk"
 	@pim_members_keyfield = "sys_pk"
 	@pim_evtype_keyfield = "sys_pk"
+	@pim_nylas_keyfield = "sys_pk"
 
 	@pim_calendar = "/!/pim/calendar/"
 	@pim_calendar_new = "/!/pim/calendar/_new/"
 	@pim_calendar_edt = "/!/pim/calendar/@_entity_id/"
 	@pim_calendar_del = @pim_calendar_edt
-	@pim_calendar_see = "/!/pim/calendar/@_entity_id/?action=view-calendar"
+	@pim_calendar_see = "/!/pim/calendar/@_entity_id/schedule/"
 	@pim_calendar_per = "/!/pim/members/?calendar=@_entity_id"
+	@pim_calendar_sync = "/!/pim/calendar/@_entity_id/sync/"
 
 	@pim_events_new = "/!/pim/events/_new/"
 	@pim_events_edt = "/!/pim/events/@_entity_id/"
@@ -45,6 +49,10 @@ module "Variables globales"
 	@pim_events_type_edt = "/!/pim/events-type/@_entity_id/"
 	@pim_events_type_del = @pim_events_type_edt
 
+	@pim_nylas_new = "/!/pim/nylas/_new/?calendar_id=@calendar_id"
+	@pim_nylas_edt = "/!/pim/nylas/@_entity_id/"
+
+	@hosting_service_id = ""
 	@default_max_rows = 250
 
 	@stt_event_pendiente = 0

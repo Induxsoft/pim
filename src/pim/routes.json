@@ -1,1 +1,1 @@
-[{"pattern":"/_program/","routes":[{"route":"/calendar/","entity_type":"pim_calendar"},{"route":"/events/","entity_type":"pim_events"},{"route":"/members/","entity_type":"pim_calendar_per"},{"route":"/events-type/","entity_type":"pim_events_type"}]}]
+[{"pattern":"/_program/","routes":[{"route":"/calendar/","entity_type":"pim_calendar"},{"route":"/events/","entity_type":"pim_events"},{"route":"/members/","entity_type":"pim_calendar_per"},{"route":"/events-type/","entity_type":"pim_events_type"},{"route":"nylas","entity_type":"pim_nylas_connection"}]}]

@@ -1,0 +1,114 @@
+#include "dkli.dkh"
+#!
+module ":nylas"
+{
+    @table_name = "pim_nylas_connection"
+    @keyfield = @pim_nylas_keyfield
+    @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user,service_id,user_id,calendar_id"
+
+    function read(&db,&params)
+    {
+        ref entity = entity.read(db,params)
+
+        if not(isset("@just_read_entity")) { @just_read_entity = @false }
+        if @just_read_entity { return entity }
+
+        ref calendar = dbr.rec(db,"SELECT * FROM pim_calendar WHERE sys_guid = @calendar_id",entity)
+        entity<"_calendar*"> : calendar
+
+        return entity
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    function create(&db,&params,&data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+
+        ref calendar = dbr.rec(db,ftext("SELECT sys_guid, nombre FROM pim_calendar WHERE #<@pim_calendar_keyfield> = @calendar_id"),params)
+        if isnull(calendar) { do rise_error(404,"No se encontro información del calendario proporcionado.") }
+        apikey = dbr.vars.get(db,"pim_calendar_sync_apikey")
+        if apikey == "" { do rise_error(511,"No se ha especificado la clave de API para sincronizar los calendarios.") }
+        user_id = @@(@http_context,"$session/user/uid")
+
+        do dbr.begin(db)
+        
+        new connection
+        {
+            @"sys_user": user_id
+            @"service_id": solveServiceId(db)
+            @"user_id": GetGuidUsr(db,user_id)
+            @"calendar_id": @@(calendar,"$sys_guid")
+            @"external_name": @@(calendar,"$nombre")
+            @"send_events": @true
+            @"receive_events": @true
+            @"external_priority": @false
+            @"disabled": @false
+        }
+        ref entity = entity.create(db,params,connection)
+        
+        href = replace(@url_get_nylas_oauth,"@apikey",apikey)
+        href = replace(href,"@state",@@(entity,"$sys_guid"))
+
+        do dbr.commit(db)
+
+        @url_redir = href
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    function update(&db,&params,&data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+
+        do dbr.begin(db)
+
+        if field.exist(data,"send_events") { data<"send_events"> : parse.bool(@@(data,"$send_events")) }
+        if field.exist(data,"receive_events") { data<"receive_events"> : parse.bool(@@(data,"$receive_events")) }
+        if field.exist(data,"external_priority") { data<"external_priority"> : parse.bool(@@(data,"$external_priority")) }
+        if field.exist(data,"disabled") { data<"disabled"> : parse.bool(@@(data,"$disabled")) }
+        
+        ref entity = entity.update(db,params,data)
+
+        do dbr.commit(db)
+
+        calendar_key = dbr.str(db,ftext("SELECT #<@pim_calendar_keyfield> FROM pim_calendar WHERE sys_guid = @calendar_id"),entity)
+        @url_redir = replace(@pim_calendar_sync, "@_entity_id", calendar_key)
+
+        return entity
+        
+        exception{ do catch(db,params,data) }
+    }
+
+    function catch(&db,&params,&data)
+    {
+        do errordet(@false)
+        code = last_error_code()
+        error = last_error()
+
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if isset("@@_action_context") { do dbr.apps.action.log() }
+
+        if isanyword(@@(params,"$_operation"),"create,update")
+        {
+            if isnull(data) { ref data:record.create() }
+            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores." }
+        }
+        else if @@(params,"$_operation") == "delete"
+        {
+            if contains(error,"Cannot delete or update a parent row") || contains(error,"DELETE Error") {
+                error = "No es posible eliminar, otros registros dependen del elemento proporcionado."
+            }
+        }
+        
+        do clear_exceptions()
+        do rise_error(code,error)
+    }
+
+    point @read to nylas.read
+    point @create to nylas.create
+    point @update to nylas.update
+}

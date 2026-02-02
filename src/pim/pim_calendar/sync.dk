@@ -1,0 +1,105 @@
+#include "dkli.dkh"
+#!
+module "form.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "../_lib/config.dk"
+
+    do @context.begin(@crud_context)
+
+    ref calendar = ifnull(@("&./entity"),record.create())
+    ref connections = ifnull(@("&./connections"),list.create())
+
+    @_entities_type = @("$parameters/_entities_type")
+	@_entity_id = @("$parameters/_entity_id")
+
+    new_nylas_cnn = replace(@pim_nylas_new, "@calendar_id", @_entity_id)
+
+    new nav_config
+    {
+        @"title": @@(calendar,"$nombre")
+        @"urlexit": replace(@pim_calendar_see, "@_entity_id", @_entity_id)
+        
+        member @"hidden"
+        {
+            @"copy": @true
+            @"csv": @true
+            @"print": @true
+            @"send": @true
+        }
+    }
+
+    #$
+    div(class="container-fluid" id="view")
+    {
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+
+            div(class="d-flex gap-2")
+            {
+                span(class="fw-bold"){"Conectar |"}
+
+                button(class="btn btn-sm btn-primary" type="button" id="sync-google" onclick="IframeModal.open({url:'#<new_nylas_cnn>', title:'Conectar calendario', autoCloseOnUnload:false, setHeader:true, height:'80%', width:'60%'});"){"Calendario de Google"}
+            }
+        }
+
+        section(id="work_area" style="overflow-y:auto; overflow-x:hidden;")
+        {
+            div(class="table-responsive")
+            {
+                table(class="table table-sm table-hover")
+                {
+                    thead
+                    {
+                        tr
+                        {
+                            th{"Nombre de la conexión"}
+                            th{"Activo"}
+                            th{"Acciones"}
+                        }
+                    }
+                    tbody
+                    {""
+                        #!
+                        for i = 0; i < list.count(connections)
+                        {
+                            ref item = list.obj(connections,i)
+                            
+                            url_edit = replace(@pim_nylas_edt, "@_entity_id", @@(item,"$connection_key"))
+                            
+                            #$
+                            tr
+                            {
+                                td{"#<@@(item,'$external_name')>"}
+                                td{"#<@@(item,'$active')>"}
+                                td(class="d-flex gap-2")
+                                {
+                                    a(class="btn btn-sm btn-warning" href="#<url_edit>"){"Editar"}
+                                    button(class="btn btn-sm btn-danger" type="button"){"Desconectar"}
+                                }
+                            }
+                        }
+                        #$
+                    }
+                }
+            }
+        }
+
+        section(id="bottom_area")
+        {
+            //////////////////////////////////////////////////////////////////
+            div
+            {
+                script(src="#<@js_modal_iframe>"){""}
+            }
+        }
+    }
+    #!
+
+    do @context.end()
+}

@@ -21,22 +21,18 @@ module "CalendarController"
             point @list to calendar.searchGroups
             break
         }
-        case "view-calendar"
+    }
+
+    switch @@(params,"$_view")
+    {
+        case "schedule"
         {
-            @list_view = "calendar.dk"
             @form_view = "calendar.dk"
             break
         }
-        case "view-event"
+        case "sync"
         {
-            @list_view = "event.dk"
-            @form_view = "event.dk"
-            break
-        }
-        case "view-members"
-        {
-            @list_view = "members.dk"
-            @form_view = "members.dk"
+            @form_view = "sync.dk"
             break
         }
     }

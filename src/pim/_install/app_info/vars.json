@@ -142,6 +142,24 @@
                         ]
                     }
                 }
+            },
+            {
+                "varname": "pim_calendar_sync_apikey",
+                "vardefault": "",
+                "varvalue": "",
+                "varcaption": "Sync API Key",
+                "varhelp": "Induxsoft Calendar Sync API Key",
+                "vartype": "string",
+                "varinput": { "control": "text" }
+            },
+            {
+                "varname": "pim_calendar_sync_apisecret",
+                "vardefault": "",
+                "varvalue": "",
+                "varcaption": "Sync API Secret",
+                "varhelp": "Induxsoft Calendar Sync API Secret",
+                "vartype": "string",
+                "varinput": { "control": "text" }
             }
         ]
     }

@@ -79,6 +79,17 @@ module "Funciones de propósito general"
             return value
         }
     }
+
+    function solveServiceId(&db)
+    {
+        if @hosting_service_id != "" { return @hosting_service_id }
+
+        qname = dbr.relative_qname(db)
+        cnn = list.str(split(qname,"@"),0)
+        id = replace(cnn,"vxii","")
+
+        return id
+    }
 	
 	function GetPkUsr(&db,usrId)
     {
@@ -91,6 +102,8 @@ module "Funciones de propósito general"
         new params { @"id": usrId }
         return dbr.str(db,"SELECT usr.sys_guid FROM tuser AS usr LEFT JOIN sys_session AS ss ON usr.sys_pk = ss.iuser WHERE usr.sys_guid = @id OR usr.userid = @id OR ss.sys_guid = @id",params)
     }
+
+
     createselect::&calendars,value
     {
         #$
