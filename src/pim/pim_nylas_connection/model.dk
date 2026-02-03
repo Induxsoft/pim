@@ -48,8 +48,9 @@ module ":nylas"
         }
         ref entity = entity.create(db,params,connection)
         
+        state = @@(entity,"$sys_guid") +"@"+ @@(entity,"$service_id")
         href = replace(@url_get_nylas_oauth,"@apikey",apikey)
-        href = replace(href,"@state",@@(entity,"$sys_guid"))
+        href = replace(href,"@state",state)
 
         do dbr.commit(db)
 
@@ -83,6 +84,17 @@ module ":nylas"
         exception{ do catch(db,params,data) }
     }
 
+    function delete(&db,&params)
+    {
+        @use_transaction = @false
+
+        do entity.delete(db,params)
+
+        return @null
+
+        exception{ do catch(db,params,@null) }
+    }
+
     function catch(&db,&params,&data)
     {
         do errordet(@false)
@@ -111,4 +123,5 @@ module ":nylas"
     point @read to nylas.read
     point @create to nylas.create
     point @update to nylas.update
+    point @delete to nylas.delete
 }

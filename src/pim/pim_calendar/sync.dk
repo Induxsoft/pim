@@ -70,7 +70,9 @@ module "form.dk"
                         {
                             ref item = list.obj(connections,i)
                             
-                            url_edit = replace(@pim_nylas_edt, "@_entity_id", @@(item,"$connection_key"))
+                            cnnkey = @@(item,"$connection_key")
+                            url_edit = replace(@pim_nylas_edt, "@_entity_id", cnnkey)
+                            url_delete = "/!/pim/nylas/{id}/"
                             
                             #$
                             tr
@@ -80,7 +82,7 @@ module "form.dk"
                                 td(class="d-flex gap-2")
                                 {
                                     a(class="btn btn-sm btn-warning" href="#<url_edit>"){"Editar"}
-                                    button(class="btn btn-sm btn-danger" type="button"){"Desconectar"}
+                                    button(class="btn btn-sm btn-danger" type="button" onclick="InduxsoftCrudlModel.Delete('#<cnnkey>','#<url_delete>')"){"Desconectar"}
                                 }
                             }
                         }
