@@ -19,7 +19,8 @@ module "Variables globales"
 
 	@url_search_users = "/!/pim/calendar/?action=search-users&search=@search"
 	@url_search_groups = "/!/pim/calendar/?action=search-groups&search=@search"
-	@url_get_nylas_oauth = "https://nylas-cloud.api.induxsoft.net/?apikey=@apikey&state=@state"
+	@url_nylas_induxsoft = "https://nylas-cloud.api.induxsoft.net"
+	@svc_nylas_induxsoft = @url_nylas_induxsoft+"/services.dkl"
 
 	@pim_calendar_keyfield = "sys_pk"
 	@pim_events_keyfield = "sys_pk"

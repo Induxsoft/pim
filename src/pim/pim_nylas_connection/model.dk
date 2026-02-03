@@ -49,8 +49,8 @@ module ":nylas"
         ref entity = entity.create(db,params,connection)
         
         state = @@(entity,"$sys_guid") +"@"+ @@(entity,"$service_id")
-        href = replace(@url_get_nylas_oauth,"@apikey",apikey)
-        href = replace(href,"@state",state)
+        href = @url_nylas_induxsoft + "/?apikey="+apikey
+        href = href + "&state="+state
 
         do dbr.commit(db)
 
@@ -87,6 +87,27 @@ module ":nylas"
     function delete(&db,&params)
     {
         @use_transaction = @false
+
+        ref entity = entity.read(db,params)
+        
+        state = @@(entity,"$sys_guid") +"@"+ @@(entity,"$service_id")
+        endpoint = @svc_nylas_induxsoft+"?action=delete-account&state="+state
+        new headers
+        {
+            @"Content-Type": "application/json"
+        }
+        response = http.request(endpoint,"DELETE",headers,@null)
+        codeblock ""
+        {
+            ref resp = from.json(response)
+            exception
+            {
+                do pop_exception()
+                do rise_error(500,response)
+            }
+        }
+
+        if not(@@(resp,"#success")) { do rise_error(500,@@(resp,"$message")) }
 
         do entity.delete(db,params)
 
