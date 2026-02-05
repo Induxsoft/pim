@@ -1,0 +1,54 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    function getPimEvent(&db,&params)
+    {
+        return dbr.rec(db,ftext("select * from pim_events where #<@pim_events_keyfield> = @_entity_id"),params)
+    }
+
+    function getConnection(&db,calendar_pk)
+    {
+        calendar_pk >> p
+        
+        ref cal = dbr.rec(db,"select sys_guid from pim_calendar where sys_pk = @calendar_pk",p)
+        ref cnn = dbr.rec(db,"select * from pim_nylas_connection where calendar_id = @sys_guid",cal)
+
+        return cnn
+    }
+
+    function canSync(&cnn)
+    {
+        if isnull(cnn) { return @false }
+        if @@(cnn,"#disabled") { return @false }
+        if not(@@(cnn,"#send_events")) { return @false }
+
+        return @true
+    }
+
+    function requestNylas(method,&params,&payload)
+    {
+        endpoint = add_url_params(@svc_nylas_induxsoft,params)
+        new headers
+        {
+            @"Content-Type": "application/json"
+        }
+        if isnull(payload) { response = http.request(endpoint,method,headers,@null) }
+        else { response = http.request(endpoint,method,headers,to.json(payload)) }
+
+        ref resp = from.json(response)
+        if not(@@(resp,"#success")) { do rise_error(500,@@(resp,"$message")) }
+
+        return @@(resp,"&data")
+    }
+
+    function checkAvailabilityInExternal(&cnn,&input)
+    {
+        new params
+        {
+            @"action": "check-availability"
+            @"state": @@(cnn,"$sys_guid") +"@"+ @@(cnn,"$service_id")
+        }
+        do requestNylas("POST",params,input)
+    }
+}

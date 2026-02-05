@@ -50,6 +50,24 @@ module "Funciones de propósito general"
             return ""
         }
     }
+
+    function add_url_params(url,params)
+    {
+        params_type = vartype("params")
+        query_string = ""
+        
+        if params_type == 1 { query_string = replace(params,"?","") }
+        else if params_type == 2
+        {
+            go foreach.fstr(key:key, value:value) with(params)
+            {
+                query_string = query_string + key + "=" + value + "&"
+            }
+            query_string = rremove(query_string,1)
+        }
+
+        return url + ifstr(contains(url,"?"),"&","?") + query_string
+    }
 	
 	function fd(name,type,&obj)
     {

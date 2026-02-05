@@ -1,0 +1,98 @@
+#include "dkli.dkh"
+#!
+program "Controlador de eventos"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "webcl.dkh"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
+    #include "pim/_lib/config.dk"
+    #include "pim/_lib/lib.dk"
+    #include "pim/_events/pim_events/lib.dk"
+
+    do @context.begin(@event_context)
+
+    ref db = @("&database")
+    ref params = @("&eventdata/parameters")
+    ref input = @("&eventdata/input")
+    // do file.wtext("C:/Devkron/_tests/logs/event_context."+@("$event")+".json",to.json(@event_context))
+
+    switch @("$event")
+    {
+        //#region create-event
+        case "pre_TF21"
+        {
+            break
+        }
+        case "pos_TF21"
+        {
+            ref cnn = getConnection(db,@@(input,"#calendar"))
+            if not(canSync(cnn)) { break }
+            if @@(cnn,"#external_priority") {
+                // Antes de agendar en v12 se confirma disponibilidad en el externo.
+                do checkAvailabilityInExternal(cnn,input)
+            }
+
+            new query
+            {
+                @"action": "create-event"
+                @"state": @@(cnn,"$sys_guid") +"@"+ @@(cnn,"$service_id") 
+            }
+            ref resp = requestNylas("POST",query,input)
+            ref output = @("&eventdata/output")
+
+            output<"external_id"> : @@(resp,"$data/id")
+            do dbr.execute(db,"update pim_events set external_id = @external_id where sys_pk = @sys_pk",output)
+
+            exception
+            {
+                params<"_entity_id"> : "_new"
+                do rise_error(last_error_code(),last_error())
+            }
+            break
+        }
+        //#region update-event
+        case "pre_TF22"
+        {
+            break
+        }
+        case "pos_TF22"
+        {
+            ref evt = getPimEvent(db,params)
+            if @@(evt,"$external_id") == "" { break }
+
+            ref cnn = getConnection(db,@@(input,"#calendar"))
+            if not(canSync(cnn)) { break }
+
+            new query
+            {
+                @"action": "update-event"
+                @"state": @@(cnn,"$sys_guid") +"@"+ @@(cnn,"$service_id")
+                @"event_id": @@(evt,"$external_id")
+            }
+            do requestNylas("PUT",query,input)
+            break
+        }
+        //#region delete-event
+        case "pre_TF23"
+        {
+            ref evt = getPimEvent(db,params)
+            if @@(evt,"$external_id") == "" { break }
+
+            ref cnn = getConnection(db,@@(evt,"#calendar"))
+            if not(canSync(cnn)) { break }
+
+            new query
+            {
+                @"action": "delete-event"
+                @"state": @@(cnn,"$sys_guid") +"@"+ @@(cnn,"$service_id")
+                @"event_id": @@(evt,"$external_id")
+            }
+            do requestNylas("DELETE",query,@null)
+            break
+        }
+    }
+
+    do @context.end()
+}

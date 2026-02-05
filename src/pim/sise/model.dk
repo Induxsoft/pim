@@ -292,7 +292,7 @@ module ":rest"
         codeblock ""
         {
             do dbr.delete(db,"pim_events","sys_pk=@sys_pk",event)
-            return "Se elimino el evento"
+            return "Se eliminó el evento"
             exception{ return "No fue posible eliminar el evento" }
         }
     }
