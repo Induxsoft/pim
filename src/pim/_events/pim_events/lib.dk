@@ -32,6 +32,7 @@ module ""
         new headers
         {
             @"Content-Type": "application/json"
+            @"Authorization": "Basic "+to.base64(@apikey+":"+@secret)
         }
         if isnull(payload) { response = http.request(endpoint,method,headers,@null) }
         else { response = http.request(endpoint,method,headers,to.json(payload)) }

@@ -60,10 +60,18 @@ module ":rest"
         select
             sys_pk,
             sys_guid,
+            sys_recver,
             calendar,
             type,
-            ifnull(date_format(`start`,'%Y-%m-%d %H:%i'),'') `start`,
-            ifnull(duration,0), duration
+            caption,
+            date_format(`start`,'%Y-%m-%d %H:%i') `start`,
+            duration,
+            `status`,
+            important,
+            detsrc,
+            srcid,
+            tag,
+            data
         from pim_events
         where sys_guid = @event_id
         ",params)
@@ -122,8 +130,15 @@ module ":rest"
         do field.remove(data,"response_type")
         do field.remove(data,"suggested_days")
         do field.remove(data,"only_on_the_hour")
+
+        do dbr.begin(db)
+
         do dbr.insert(db,"pim_events",data)
         ref event = GetEvent(db,@@(data,"$sys_guid"))
+
+        do dbr.apps.action.pos(event)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(event)
 
         //* ======================================== [ RESPONSE ]
 
@@ -185,8 +200,15 @@ module ":rest"
         do field.remove(data,"response_type")
         do field.remove(data,"suggested_days")
         do field.remove(data,"only_on_the_hour")
+
+        do dbr.begin(db)
+
         do dbr.update(db,"pim_events",data,"sys_pk=@sys_pk",event)
         ref event:GetEvent(db,@@(event,"$sys_guid"))
+
+        do dbr.apps.action.pos(event)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(event)
 
         //* ======================================== [ RESPONSE ]
 
@@ -288,12 +310,21 @@ module ":rest"
 
         // validar acciones de usuario y campos
         do events.validateEventAction(db,calendar_pk)
+        do dbr.begin(db)
 
-        codeblock ""
+        do dbr.delete(db,"pim_events","sys_pk=@sys_pk",event)
+
+        do dbr.apps.action.pos(@null)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(@null)
+
+        return "Se eliminó el evento"
+        exception
         {
-            do dbr.delete(db,"pim_events","sys_pk=@sys_pk",event)
-            return "Se eliminó el evento"
-            exception{ return "No fue posible eliminar el evento" }
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if isset("@@_action_context") { do dbr.apps.action.log() }
+            
+            return "No fue posible eliminar el evento"
         }
     }
     //#endregion
@@ -310,6 +341,13 @@ module ":rest"
             case "save-event" { return SaveEvent(db,params,payload) }
             case "delete-event" { return DelEvent(db,params,payload) }
             default{ do rise_error(500,"Acción no identificada") }
+        }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if isset("@@_action_context") { do dbr.apps.action.log() }
+            do rise_error(last_error_code(),last_error())
         }
 
         return ""

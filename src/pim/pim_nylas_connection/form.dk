@@ -23,7 +23,7 @@ module ""
     url_exit = replace(@pim_calendar_sync, "@_entity_id", @calendar_key)
     url_schedule = replace(@pim_calendar_see, "@_entity_id", @calendar_key)
 
-    form_nylas_cloud = (url_referer != "" && contains(url_referer,"nylas-cloud"))
+    form_nylas_cloud = (url_referer != "" && contains(url_referer,"nylas-cloud")) || parse.bool(@("$parameters/from-nylas"))
     hide_top_area = (@is_new || form_nylas_cloud)
 
     function printNavButtons()

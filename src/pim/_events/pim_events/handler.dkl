@@ -16,6 +16,8 @@ program "Controlador de eventos"
     ref db = @("&database")
     ref params = @("&eventdata/parameters")
     ref input = @("&eventdata/input")
+    @apikey = dbr.vars.get(db,"pim_calendar_sync_apikey")
+    @secret = dbr.vars.get(db,"pim_calendar_sync_apisecret")
     // do file.wtext("C:/Devkron/_tests/logs/event_context."+@("$event")+".json",to.json(@event_context))
 
     switch @("$event")
