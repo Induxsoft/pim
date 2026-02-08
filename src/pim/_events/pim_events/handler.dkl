@@ -16,6 +16,7 @@ program "Controlador de eventos"
     ref db = @("&database")
     ref params = @("&eventdata/parameters")
     ref input = @("&eventdata/input")
+    ref output = @("&eventdata/output")
     @apikey = dbr.vars.get(db,"pim_calendar_sync_apikey")
     @secret = dbr.vars.get(db,"pim_calendar_sync_apisecret")
     // do file.wtext("C:/Devkron/_tests/logs/event_context."+@("$event")+".json",to.json(@event_context))
@@ -29,11 +30,11 @@ program "Controlador de eventos"
         }
         case "pos_TF21"
         {
-            ref cnn = getConnection(db,@@(input,"#calendar"))
+            ref cnn = getConnection(db,@@(output,"#calendar"))
             if not(canSync(cnn)) { break }
             if @@(cnn,"#external_priority") {
                 // Antes de agendar en v12 se confirma disponibilidad en el externo.
-                do checkAvailabilityInExternal(cnn,input)
+                do checkAvailabilityInExternal(cnn,output)
             }
 
             new query
@@ -41,8 +42,7 @@ program "Controlador de eventos"
                 @"action": "create-event"
                 @"state": @@(cnn,"$sys_guid") +"@"+ @@(cnn,"$service_id") 
             }
-            ref resp = requestNylas("POST",query,input)
-            ref output = @("&eventdata/output")
+            ref resp = requestNylas("POST",query,output)
 
             output<"external_id"> : @@(resp,"$data/id")
             do dbr.execute(db,"update pim_events set external_id = @external_id where sys_pk = @sys_pk",output)
@@ -64,7 +64,7 @@ program "Controlador de eventos"
             ref evt = getPimEvent(db,params)
             if @@(evt,"$external_id") == "" { break }
 
-            ref cnn = getConnection(db,@@(input,"#calendar"))
+            ref cnn = getConnection(db,@@(output,"#calendar"))
             if not(canSync(cnn)) { break }
 
             new query
@@ -73,7 +73,7 @@ program "Controlador de eventos"
                 @"state": @@(cnn,"$sys_guid") +"@"+ @@(cnn,"$service_id")
                 @"event_id": @@(evt,"$external_id")
             }
-            do requestNylas("PUT",query,input)
+            do requestNylas("PUT",query,output)
             break
         }
         //#region delete-event

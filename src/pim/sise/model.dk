@@ -115,8 +115,6 @@ module ":rest"
             @"_entity_id": "_new"
             @"calendar": calendar_pk
         }
-        if isnull(@@(@http_context,"&request/get")) { @http_context<"request/get*"> : params}
-        if isnull(@@(@http_context,"&session/user")) { @http_context<"session/user*"> : record.create()}
         @http_context<"session/user/uid"> : calendar_owner_id
 
         // validar acciones de usuario y campos
@@ -185,8 +183,6 @@ module ":rest"
             @"_entity_id": @@(event,"#sys_pk")
             @"calendar": calendar_pk
         }
-        if isnull(@@(@http_context,"&request/get")) { @http_context<"request/get*"> : params}
-        if isnull(@@(@http_context,"&session/user")) { @http_context<"session/user*"> : record.create()}
         @http_context<"session/user/uid"> : calendar_owner_id
 
         // validar acciones de usuario y campos
@@ -304,8 +300,6 @@ module ":rest"
             @"_entity_id": @@(event,"#sys_pk")
             @"calendar": calendar_pk
         }
-        if isnull(@@(@http_context,"&request/get")) { @http_context<"request/get*"> : params}
-        if isnull(@@(@http_context,"&session/user")) { @http_context<"session/user*"> : record.create()}
         @http_context<"session/user/uid"> : calendar_owner_id
 
         // validar acciones de usuario y campos
@@ -335,6 +329,9 @@ module ":rest"
         ref db = GetDb()
         ref payload = ifnull(get_payload(),record.create())
         ref params = record.copyex(_params(),@@(payload,"&params"),"*",",","",":")
+
+        @http_context<"request/get*"> : params
+        if isnull(@@(@http_context,"&session/user")) { @http_context<"session/user*"> : record.create() }
         
         switch action
         {
