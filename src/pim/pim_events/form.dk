@@ -94,6 +94,7 @@ module "form.dk"
                         calendar.schedule.selected=#<to.json(entity)>;
                         events.url_bitacora = "#<url_bitacora>";
                         events.form_id = "#<@form_id>";
+                        events.is_new=#<@is_new>;
                         events.init();
                         // Script injection
                         #<@@(@crud_context,"script")>

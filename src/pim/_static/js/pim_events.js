@@ -1,7 +1,7 @@
 var events = {
     form_id:"", form:null, ff:null,
     url_bitacora:"",
-
+    is_new:false,
     init()
     {
         this.form = document.getElementById(this.form_id);
@@ -21,7 +21,7 @@ var events = {
         start.addEventListener('change', (e) => this.checkStartRange());
         duration.addEventListener('change', (e) => this.checkStartRange());
 
-        tools.trigger(type,'change');
+        if(this.is_new)tools.trigger(type,'change');
     },
 
     checkStartRange()
