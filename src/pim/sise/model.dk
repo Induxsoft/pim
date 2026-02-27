@@ -232,7 +232,8 @@ module ":rest"
         if field.exist(params,"suggested_days") { data<"suggested_days"> : @@(params,"#suggested_days") }
         if field.exist(params,"only_on_the_hour") { data<"only_on_the_hour"> : @@(params,"$only_on_the_hour") }
         
-        if trim(@@(data,"$calendar_id")) == "" { do rise_error(400,"No ha indicado el id del calendario.") }
+        calendar_id = replace(trim(@@(data,"$calendar_id"))," ","")
+        if calendar_id == "" { do rise_error(400,"No ha indicado el id del calendario.") }
         
         start = trim(@@(data,"$start"))
         if start == "" { do rise_error(400,"No ha indicado la fecha y hora del evento.") }
@@ -261,18 +262,64 @@ module ":rest"
             ref event = GetEvent(db,@@(data,"$event_id"))
             payload<"event*"> : event
             is_new = isnull(event)
-        }        
-
-        ref calendar = dbr.rec(db,"select sys_pk, sys_guid, propietario, nombre from pim_calendar where sys_guid=@calendar_id",data)
-        if isnull(calendar) { do rise_error(404,"No se encontró datos del calendario.") }
+        }
 
         data<"start"> : start
-        payload<"calendar*"> : calendar
+        
+        // Load balancing dinámico
+        if @count(split(calendar_id,",")) > 1 && is_new
+        {
+            calendars_id = "'"+replace(calendar_id,",","','")+"'"
+            do field.remove(data,"calendar_id")
+            // 1. Consulta cantidad de eventos pendientes de cada calendario (no cancelados, no completados, posteriores a NOW).
+            // 2. Ordena la lista de menor a mayor carga.
+            sql = "select c.sys_pk, c.sys_guid, c.propietario, nombre, count(e.sys_pk) eventos from pim_calendar c left join pim_events e on e.calendar = c.sys_pk  and ifnull(e.`status`,0)=0 and e.`start` > now() where c.sys_guid in ("+calendars_id+") group by c.sys_guid order by eventos asc;"
+            ref calendars = dbr.list(db,sql,@null)
+            // 3. Itera en orden intentando registrar el evento en la fecha/hora solicitada.
+            calendarios = list.count(calendars)
+            if calendarios < 1 { do rise_error(404,"No se encontró datos del calendario.") }
+            for i = 0; i < calendarios
+            {
+                payload<"calendar*"> : list.obj(calendars,i)
+                
+                // 4. Si encuentra disponibilidad -> registra y retorna confirmación.
+                response_text = AddEvent(db,params,payload)
 
-        do field.remove(data,"calendar_id")
+                exception{ response_text = "No fue posible agendar el evento: "+last_error() }
 
-        if is_new { return AddEvent(db,params,payload) }
-        else { return EdtEvent(db,params,payload) }
+                if contains(response_text,"Se ha agregado con éxito el evento") || calendarios == 1 {
+                    return response_text
+                }
+            }
+            // 5. Si ninguno tiene disponibilidad -> retorna la lista de slots alternativos del *primer calendario* de la lista ordenada (menor carga)
+            data<"calendar"> : @@(list.obj(calendars,0), "#sys_pk")
+
+            message = "No se ha podido agendar el evento "+start+" porque el horario elegido no está disponible.\nLas siguientes fechas y horarios están disponibles cerca de esa fecha:\n"
+            message = message + events.GetAvailability(db,data)
+            
+            return message
+        }
+        else
+        {
+            if is_new
+            {
+                ref calendar = dbr.rec(db,"select sys_pk, sys_guid, propietario, nombre from pim_calendar where sys_guid=@calendar_id",data)
+                if isnull(calendar) { do rise_error(404,"No se encontró datos del calendario.") }
+
+                payload<"calendar*"> : calendar
+                do field.remove(data,"calendar_id")
+                
+                return AddEvent(db,params,payload)
+            }
+            else
+            {
+                ref calendar = dbr.rec(db,"select sys_pk, sys_guid, propietario, nombre from pim_calendar where sys_pk=@calendar",@@(payload,"&event"))
+                payload<"calendar*"> : calendar
+                do field.remove(data,"calendar_id")
+
+                return EdtEvent(db,params,payload)
+            }
+        }
     }
 
     DelEvent::&db,&params,&payload

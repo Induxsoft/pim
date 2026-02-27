@@ -182,7 +182,6 @@ module ":events"
         }
 
         calendar, start, duration >> p
-        if field.exist(params,"event_id") { p<"event_id"> : @@(params,"$event_id") }
         
         ref cal = dbr.rec(db,"SELECT start_lab_hour, end_lab_hour, intervalo, breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",p)
 
@@ -234,62 +233,78 @@ module ":events"
         {
             message = "No se ha podido agendar el evento "+start+" porque el horario elegido no está disponible.\nLas siguientes fechas y horarios están disponibles cerca de esa fecha:\n"
             
-            // Fechas y horas disponibles a partir de la fecha y hora proporcionado.
-            limit = @@(params,"#suggested_days")
-            if limit < 1 { limit = 7 }
-            
-            ref available = GetAvailableDates(p.start,cal,limit)
-            ref a_dates = list.create_from_fields(available)
-            // Consultar Fechas y horas ocupados dentro del rango de fechas disponibles.
-            using p
-            {
-                @"fi": list.str(a_dates,0)
-                @"ff": list.str(a_dates,list.count(a_dates)-1)
-            }
-            ref busy = dbr.list(db,"
-            SELECT
-                DATE_FORMAT(e.`start`,'%Y-%m-%d') d,
-                GROUP_CONCAT(CONCAT(DATE_FORMAT(e.`start`,'%H:%i'),'-',DATE_FORMAT(DATE_ADD(e.`start`, INTERVAL e.duration MINUTE),'%H:%i')) SEPARATOR ',') h
-            FROM pim_events e
-            WHERE
-                ( DATE(e.`start`) BETWEEN DATE(@fi) AND DATE(@ff) )
-                AND (@event_id IS NULL OR e.sys_guid <> @event_id)
-            GROUP BY DATE(e.`start`)
-            ",p)
-            // Convertir la lista de fechas y horas ocupados a un record.
-            ref b_dates = record.create()
-            for i = 0; i < list.count(busy)
-            {
-                ref itm = list.obj(busy,i)
-                b_dates<@@(itm,"$d")> : @@(itm,"$h")
-            }
-            // Concatenar las fechas y horas disponibles a la respuesta.
-            only_on_the_hour = parse.bool(@@(params,"$only_on_the_hour"))
-            for i = 0; i < list.count(a_dates)
-            {
-                date = list.str(a_dates,i)
-                message = message + date + "\r\n"
-                
-                ref hours = field.obj(available,date)
-                a_hours = ""
-                for j = 0; j < list.count(hours)
-                {
-                    hour = list.str(hours,j)
-                    
-                    ok = @true
-                    if only_on_the_hour { ok = (only_on_the_hour && EndsWith(hour,":00")) }
-                    if not(IsInBreak(hour,@@(b_dates,date))) && ok {
-                        a_hours = a_hours + hour + "\r\n"
-                    }
-                }
-                
-                if a_hours == "" { a_hours = "Sin disponibilidad en esta fecha.\r\n" }
-                message = message + a_hours
-            }
+            message = message + GetAvailability(db,params)
         }
 
         success, message >> response
         return response
+    }
+
+    //#region GetAvailability()
+    function GetAvailability(&db,&settings)
+    {
+        // Configuración del calendario
+        ref calendar = dbr.rec(db,"SELECT start_lab_hour, end_lab_hour, intervalo, breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",settings)
+        // Devolver horas completas, ej: 13:00, 14:00, ...
+        only_on_the_hour = parse.bool(@@(settings,"$only_on_the_hour"))
+        // Devolver fechas y horas disponibles a partir de la fecha y hora proporcionado.
+        limit = @@(settings,"#suggested_days")
+        if limit < 1 { limit = 7 }
+
+        ref available = GetAvailableDates(settings.start, calendar, limit)
+        ref a_dates = list.create_from_fields(available)
+        
+        // Consultar Fechas y horas ocupadas dentro del rango de fechas disponibles.
+        using settings
+        {
+            @"fi": list.str(a_dates,0)
+            @"ff": list.str(a_dates,list.count(a_dates)-1)
+        }
+        ref busy = dbr.list(db,"
+        SELECT
+            DATE_FORMAT(e.`start`,'%Y-%m-%d') d,
+            GROUP_CONCAT(CONCAT(DATE_FORMAT(e.`start`,'%H:%i'),'-',DATE_FORMAT(DATE_ADD(e.`start`, INTERVAL e.duration MINUTE),'%H:%i')) SEPARATOR ',') h
+        FROM pim_events e
+        WHERE
+            e.calendar = @calendar
+            AND ( DATE(e.`start`) BETWEEN DATE(@fi) AND DATE(@ff) )
+            AND (@event_id IS NULL OR e.sys_guid <> @event_id)
+        GROUP BY DATE(e.`start`)
+        ",settings)
+        
+        // Convertir la lista de fechas y horas ocupados a un record.
+        ref b_dates = record.create()
+        for i = 0; i < list.count(busy)
+        {
+            ref itm = list.obj(busy,i)
+            b_dates<@@(itm,"$d")> : @@(itm,"$h")
+        }
+        
+        // Formar respuesta de fechas y horas disponibles.
+        message = ""
+        for i = 0; i < list.count(a_dates)
+        {
+            date = list.str(a_dates,i)
+            message = message + date + "\r\n"
+            
+            ref hours = field.obj(available,date)
+            a_hours = ""
+            for j = 0; j < list.count(hours)
+            {
+                hour = list.str(hours,j)
+                
+                ok = @true
+                if only_on_the_hour { ok = (only_on_the_hour && EndsWith(hour,":00")) }
+                if not(IsInBreak(hour,@@(b_dates,date))) && ok {
+                    a_hours = a_hours + hour + "\r\n"
+                }
+            }
+            
+            if a_hours == "" { a_hours = "Sin disponibilidad en esta fecha.\r\n" }
+            message = message + a_hours
+        }
+
+        return message
     }
 
     //#region changeColor()
