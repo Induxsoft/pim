@@ -1,0 +1,77 @@
+#include "dkli.dkh"
+#!
+module ":participants"
+{
+    function validate(&data)
+    {
+        if not(field.exist(data,"participants")) { return }
+        if field.typeof(data,"participants") == 1 {
+            json = @@(data,"$participants")
+            if json == "" { json = "[]" }
+            data<"participants*"> : from.json(json)
+        }
+
+        ref list = @@(data,"&participants")
+        for i = 0; i < @count(list)
+        {
+            ref item = @item(list,i)
+
+            if @@(item,"$name") == "" { do rise_error(400,"Nombre del participante es requerido") }
+            if @@(item,"$email") + @@(item,"$phone") == "" { do rise_error(400,"Correo y Teléfono son opcionales individualmente, pero al menos uno debe estar presente.") }
+        }
+    }
+
+    function setAsChildren(&data)
+    {
+        if not(field.exist(data,"participants")) { return }
+
+        is_new = (@@(data,"#sys_pk") < 1)
+        fields = "name,email,phone,notes"
+        if not(is_new) { fields = fields + ",sys_pk,sys_recver" }
+
+        using @childs
+        {
+            member "participants"
+            {
+                @"keyfield": "sys_pk"
+                @"table": "pim_event_participant"
+                @"fields": fields
+                @"joinfield": "event"
+                @"select_query": "SELECT sys_pk,sys_recver,name,email,phone,notes FROM pim_event_participant WHERE event = @sys_pk"
+            }
+        }
+    }
+
+    function save(&db,&data)
+    {
+        if not(field.exist(data,"participants")) { return }
+
+        event = @@(data,"#event")
+        if event < 1 { event = @@(data,"#sys_pk") }
+
+        event >> p
+        do dbr.delete(db,"pim_event_participant","event = @event",p)
+
+        ref list = @@(data,"&participants")
+        for i = 0; i < @count(list)
+        {
+            ref item = @item(list,i)
+            using item
+            {
+                @"sys_guid": uuid()
+                @"sys_dtcreated*": dbr.sql("now()")
+                @"sys_timestamp*": dbr.sql("now()")
+                @"sys_recver": 0
+                @"event": event
+            }
+
+            do dbr.insert(db,"pim_event_participant",item)
+        }
+    }
+
+    function clean(&db,event)
+    {
+        event >> p
+        do dbr.delete(db,"pim_event_participant","event = @event",p)
+    }
+}

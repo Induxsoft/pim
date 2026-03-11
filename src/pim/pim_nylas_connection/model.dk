@@ -90,11 +90,15 @@ module ":nylas"
 
         ref entity = entity.read(db,params)
         
+        apikey = dbr.vars.get(db,"pim_calendar_sync_apikey")
+        secret = dbr.vars.get(db,"pim_calendar_sync_apisecret")
         state = @@(entity,"$sys_guid") +"@"+ @@(entity,"$service_id")
+
         endpoint = @svc_nylas_induxsoft+"?action=delete-account&state="+state
         new headers
         {
             @"Content-Type": "application/json"
+            @"Authorization": "Basic "+to.base64(apikey+":"+secret)
         }
         response = http.request(endpoint,"DELETE",headers,@null)
         codeblock ""
@@ -106,10 +110,13 @@ module ":nylas"
                 do rise_error(500,response)
             }
         }
-
         if not(@@(resp,"#success")) { do rise_error(500,@@(resp,"$message")) }
 
-        do entity.delete(db,params)
+        /**
+        La eliminación del registro lo hace el webhook que dispara la solicitud DELETE previa.
+        Es posible que tarde unos segundos en reflejarse debido a que el webhook espera la notificación 'grant.deleted' de nylas.
+        */
+        // do entity.delete(db,params)
 
         return @null
 

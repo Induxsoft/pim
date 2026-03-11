@@ -80,6 +80,7 @@ var calendar = {
             this.btnCancelEvent.addEventListener('click', (e) => this.changeStatus(99));
             this.btnCompleteEvent.addEventListener('click', (e) => this.changeStatus(1));
             if(this.btn_vigent_event)this.btn_vigent_event.addEventListener("click",(e)=>this.changeStatus(0));
+            
             this.modal.addEventListener('show.bs.modal', (e) => {
                 this.form.elements['duration'].value = this.schedule.min_duration;
                 tools.trigger('select[id="type"]','change');
@@ -87,7 +88,21 @@ var calendar = {
             this.modal.addEventListener('hidden.bs.modal', (e) => {
                 this.toggleModalEvent();
                 this.form.reset();
+
+                const table = document.getElementById('tbl_participants');
+                const input = e.target.querySelector('input[name="participants"]');
+                
+                table.DataArray = [];
+                table._printRows();
+                input.value = "[]";
+
+                let rows = 0;
+                while (rows < 7) {
+                    table.AddRow();
+                    rows++;
+                }
             });
+
             this.schedule.addEventListener('cellclick', (e) => {
                 this.form.elements['start'].value = e.detail.datetime;
                 tools.showModal(this.modal_id);

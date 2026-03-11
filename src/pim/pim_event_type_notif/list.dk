@@ -6,8 +6,8 @@ module "list.dk"
     #include "serialize.dkh"
     #include "uielements.v12.dkl"
     #include "../_lib/config.dk"
-    #include "../_lib/lib.dk"
-	#include "../_lib/icons.dk"
+    // #include "../_lib/lib.dk"
+	// #include "../_lib/icons.dk"
 
     do @context.begin(@crud_context)
 
@@ -19,18 +19,29 @@ module "list.dk"
         @"datatable*": ifnull(@("&./data"),list.create())
         member @"columns"
         {
-            member @"nombre" { @"caption":"Nombre" }
-            member @"backcolor" { @"caption":"Color de fondo" }
-			member @"color" { @"caption":"Color de texto" } 
+            member @"evtype" { @"caption":"Tipo de evento" }
+            member @"anticipation" { @"caption":"Anticipación" }
+            member @"channel" { @"caption":"Canal" }
+			member @"type" { @"caption":"Tipo" }
+            member @"active" { @"caption":"Activo" }
         }
         @"table_footer": "Mostrando los primeros # registros"
     }
 
+    function printNavButtons()
+    {
+        cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners no-shadow"
+        #$
+        a(class="#<cls>" href="./_new/?event_type=#<@('$parameters/event_type')>"){"Agregar"}
+        #!
+    }
+    point buttons to printNavButtons
     new nav_config
     {
-        @"title": "Tipos de eventos de calendario"
-        @"urlexit": @pim_calendar
-        @"main": "TF44,TF41,TF42,TF43" // Acciones que seran visibles en la navbar.
+        @"title": "Notificaciones"
+        @"urlexit": @pim_events_type
+        @"buttons*": buttons
+        @"main": "TF52,TF53" // Acciones que seran visibles en la navbar.
         @"actions*": ifnull(@("&./itemactions"),list.create())
         @"reports*": ifnull(@("&./itemreports"),list.create())
         @"jscurrentcontext": "getCurrentContext"
@@ -41,6 +52,23 @@ module "list.dk"
             @"copy": @true
             @"csv": @true
             @"print": @true
+        }
+    }
+
+    new pim_events_type
+    {
+        @"id": "event_type"
+        @"text_field": "nombre"
+        @"value_field": "sys_pk"
+        @"first_text": "Tipos de eventos"
+        @"first_value": "-1"
+        @"datatable*": ifnull(@("&./pim_events_type"), list.create())
+        @"selected": @("parameters/event_type")
+        member "attributes"
+        {
+            @"class": "form-select"
+            @"name": "event_type"
+            @"onchange": "this.form-submit()"
         }
     }
     // Encapsula a la vista en su totalidad, todo lo que hay antes o después no se considera 
@@ -56,7 +84,17 @@ module "list.dk"
 
             form(class="mb-1" action="./" method="GET" id="form-filter")
             {
-                "filter-text"(class="w-100" id="fil_text" "text-field"="search" value="#<@('$parameters/search')>" placeholder="Buscar ..." "form"="#form-filter" "auto-submit"="true"){$""}
+                div(class="d-flex align-items-center gap-2 flex-wrap w-100 py-1")
+                {
+                    div(class="d-flex gap-2")
+                    {
+                        div{ #! do uie.dbSelect(pim_events_type) } #$
+                    }
+                    div(class="flex-grow-1")
+                    {
+                        "filter-text"(class="w-100" "text-field"="search" value="#<@('$parameters/search')>" placeholder="Buscar ..." "form"="#form-filter" "auto-submit"="true"){""}
+                    }
+                }
             }
         }
         // Contenido principal

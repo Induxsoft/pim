@@ -131,8 +131,14 @@ module ":rest"
 
         do dbr.begin(db)
 
+        ref participants = @@(data,"&participants")
+        do field.remove(data,"participants")
+
         do dbr.insert(db,"pim_events",data)
         ref event = GetEvent(db,@@(data,"$sys_guid"))
+        
+        participants >> event
+        do participants.save(db,event)
 
         do dbr.apps.action.pos(event)
         do dbr.commit(db)
@@ -199,8 +205,14 @@ module ":rest"
 
         do dbr.begin(db)
 
+        ref participants = @@(data,"&participants")
+        do field.remove(data,"participants")
+
         do dbr.update(db,"pim_events",data,"sys_pk=@sys_pk",event)
         ref event:GetEvent(db,@@(event,"$sys_guid"))
+
+        participants >> event
+        do participants.save(db,event)
 
         do dbr.apps.action.pos(event)
         do dbr.commit(db)
@@ -353,6 +365,7 @@ module ":rest"
         do events.validateEventAction(db,calendar_pk)
         do dbr.begin(db)
 
+        do participants.clean(db,@@(event,"#sys_pk"))
         do dbr.delete(db,"pim_events","sys_pk=@sys_pk",event)
 
         do dbr.apps.action.pos(@null)

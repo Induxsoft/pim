@@ -198,29 +198,23 @@ module "form.dk"
                         }
                         div(class="modal-footer")
                         {
-                            button(class="btn btn-sm btn-primary btn-new rounded-0" type="button" id="btn-add-event"){"Aceptar"}
-                            button(class="btn btn-sm btn-light btn-new rounded-0 border" type="button" "data-bs-dismiss"="modal"){"Cancelar"}
-                            
                             label(class="btn-edt fw-bold cursor-pointer" id="btn-complete-event" hidden="" title="Completar"){img(src="/$/pim/icons/pim_complete.png" height="30" width="30")}
-                            //botones coultos para cambio de estados
                             label(class="btn-edt fw-bold cursor-pointer" id="btn-vigent-event" hidden="" title="Poner como vigente"){img(src="/$/pim/icons/pim_vigent.png" height="28" width="28")}
-                            //======
                             label(class="btn-edt fw-bold cursor-pointer" id="btn-cancel-event" hidden="" title="Cancelar evento"){img(src="/$/pim/icons/pim_cancel.png" height="30" width="30")}
                             label(class="btn-edt fw-bold cursor-pointer" id="btn-del-event" hidden="" title="Eliminar evento"){img(src="/$/pim/icons/pim_delete.png" height="28" width="28")}
                             label(class="btn-edt fw-bold cursor-pointer" id="btn-edt-event" hidden="" title="Editar evento"){img(src="/$/pim/icons/pim_edit.png" height="28" width="28")}
 
-                            hr(class="w-100"){}
-                            div(id="colors" class="w-100 d-flex justify-content-end")
+                            div(class="d-flex flex-wrap" id="group-colors")
                             {
-                                div(class="d-flex flex-wrap" id="group-colors")
-                                {
-                                    button(type="button" onclick='events.selectColor("#<@@(@colors,"$white_val")>",event);' style="border:1px solid #DFDFDF !important;background-color:#<@@(@colors,'$white')>;border-color: #DFDFDF !important; height: 30px;width: 30px;" title="Sin color" class="color"){""}
-                                    button(type="button" onclick='events.selectColor("#<@@(@colors,"$blue_val")>",event,"lightskyblue");' style="border:1px solid #DFDFDF !important;background-color:#<@@(@colors,'$blue')>;height: 30px;width: 30px;" title="Azul" class="color"){""}
-                                    button(type="button" onclick='events.selectColor("#<@@(@colors,"$green_val")>",event,"lightgreen");' style="border:1px solid #DFDFDF !important;background-color:#<@@(@colors,'$green')>;height: 30px;width: 30px;" title="Verde" class="color"){""}
-                                    button(type="button" onclick='events.selectColor("#<@@(@colors,"$yellow_val")>",event,"lightgoldenrodyellow");' style="border:1px solid #DFDFDF !important;background-color:#<@@(@colors,'$yellow')>;height: 30px;width: 30px;" title="Amarillo" class="color"){""}
-                                    button(type="button" onclick='events.selectColor("#<@@(@colors,"$red_val")>",event,"#eba3a3");' style="border:1px solid #DFDFDF !important;background-color:#<@@(@colors,'$red')>;height: 30px;width: 30px;" title="Rojo" class="color"){""}
-                                }
+                                button(type="button" onclick='events.selectColor("#<@@(@colors,"$white_val")>",event);' style="border:1px solid #DFDFDF !important;background-color:#<@@(@colors,'$white')>;border-color: #DFDFDF !important; height: 30px;width: 30px;" title="Sin color" class="color"){""}
+                                button(type="button" onclick='events.selectColor("#<@@(@colors,"$blue_val")>",event,"lightskyblue");' style="border:1px solid #DFDFDF !important;background-color:#<@@(@colors,'$blue')>;height: 30px;width: 30px;" title="Azul" class="color"){""}
+                                button(type="button" onclick='events.selectColor("#<@@(@colors,"$green_val")>",event,"lightgreen");' style="border:1px solid #DFDFDF !important;background-color:#<@@(@colors,'$green')>;height: 30px;width: 30px;" title="Verde" class="color"){""}
+                                button(type="button" onclick='events.selectColor("#<@@(@colors,"$yellow_val")>",event,"lightgoldenrodyellow");' style="border:1px solid #DFDFDF !important;background-color:#<@@(@colors,'$yellow')>;height: 30px;width: 30px;" title="Amarillo" class="color"){""}
+                                button(type="button" onclick='events.selectColor("#<@@(@colors,"$red_val")>",event,"#eba3a3");' style="border:1px solid #DFDFDF !important;background-color:#<@@(@colors,'$red')>;height: 30px;width: 30px;" title="Rojo" class="color"){""}
                             }
+                            
+                            button(class="btn btn-sm btn-primary btn-new rounded-0" type="button" id="btn-add-event"){"Aceptar"}
+                            button(class="btn btn-sm btn-light btn-new rounded-0 border" type="button" "data-bs-dismiss"="modal"){"Cancelar"}
                         }
                     }
                 }

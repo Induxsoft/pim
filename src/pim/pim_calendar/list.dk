@@ -74,6 +74,7 @@ module "list.dk"
                 edit_url = replace(@pim_calendar_edt,"@_entity_id",key)
                 view_url = replace(@pim_calendar_see,"@_entity_id",key)
                 usrs_url = replace(@pim_calendar_per,"@_entity_id",key)
+                sync_url = replace(@pim_calendar_sync,"@_entity_id",key)
 
                 #$
                 div(class="col-auto")
@@ -87,8 +88,9 @@ module "list.dk"
                         }
                         div(class="card-footer text-end bg-white py-0")
                         {
-                            a(class="btn btn-sm no-shadow" href="#<usrs_url>"){$"#<@ICON_PEOPLE>"}
-                            a(class="btn btn-sm no-shadow" href="#<edit_url>"){$"#<@ICON_EDIT>"}
+                            a(class="btn btn-sm no-shadow" href="#<sync_url>" title="Sincronizar"){$"#<@ICON_SYNC>"}
+                            a(class="btn btn-sm no-shadow" href="#<usrs_url>" title="Miembros"){$"#<@ICON_PEOPLE>"}
+                            a(class="btn btn-sm no-shadow" href="#<edit_url>" title="Editar"){$"#<@ICON_EDIT>"}
                             button(class="btn btn-sm no-shadow" onclick="InduxsoftCrudlModel.Delete('#<key>')"){$"#<@ICON_TRASH>"}
                         }
                     }

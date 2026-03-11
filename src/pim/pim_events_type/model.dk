@@ -3,7 +3,7 @@
 module ""
 {
     @table_name = "pim_events_type" // params._entities_type
-    @keyfield = "sys_pk" // params._key
+    @keyfield = @pim_evtype_keyfield // params._key
     @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user"
 
     @list_query = "

@@ -2,6 +2,7 @@
 #include "dbr.dkh"
 #!
 if not(isset("entity")) { ref entity=record.create() }
+if not(isset("participants")) { ref participants=list.create() }
 is_new = (@@(entity,"#sys_pk") < 1)
 
 new sel_type
@@ -93,80 +94,122 @@ form(class="px-1" action="./" method="POST" id="#<@form_id>")
     }
     #$
 
-    div(class="row gx-1 gx-sm-2 gx-md-3 gx-lg-4")
+    ul(class="nav nav-tabs" id="event-tab" role="tablist")
     {
-        div(class="col-12 col-sm-4 col-md-3")
+        li(class="nav-item" role="presentation"){ button(class="nav-link active" id="home-tab" "data-bs-toggle"="tab" "data-bs-target"="#home" type="button" role="tab" "aria-controls"="home" "aria-selected"="true"){"General"} }
+
+        li(class="nav-item" role="presentation"){ button(class="nav-link" id="participants-tab" "data-bs-toggle"="tab" "data-bs-target"="#participants" type="button" role="tab" "aria-controls"="participants" "aria-selected"="false"){"Participantes"} }
+    }
+    div(class="tab-content")
+    {
+        div(class="tab-pane fade show active" id="home" role="tabpanel" "aria-labelledby"="home-tab")
         {
-            label(class="form-label" "for"="type"){"Tipo:"}
-            ##
-            do uie.dbSelect(sel_type)
-            ##
-        }
-        #!
-        if not(is_new)
-        {
-            new _p
+            div(class="row gx-1 gx-sm-2 gx-md-3 gx-lg-4")
             {
-                @"calendars*":@("&./calendars")
-                // @"onlyselect":@true
-                @"value":@@(entity,"#calendar")
-            }
-            #$
-            div(class="col-12 col-sm-4 col-md-6 align-self-end d-flex gap-4")
-            {
-                div(class="dropdown")
+                div(class="col-12 col-sm-4 col-md-3")
                 {
-                    button(class="btn btn-sm btn-secondary shadow-none dropdown-toggle" type="button" id="dmb-event-links" "data-bs-toggle"="dropdown" "aria-expanded"="false"){"Enlaces"}
-                    ul(class="dropdown-menu" "aria-labelledby"="dmb-event-links"){$"#<links>"}
+                    label(class="form-label" "for"="type"){"Tipo:"}
+                    ##
+                    do uie.dbSelect(sel_type)
+                    ##
                 }
                 #!
-                do createElMoveEvent(_p)
+                if not(is_new)
+                {
+                    new _p
+                    {
+                        @"calendars*":@("&./calendars")
+                        // @"onlyselect":@true
+                        @"value":@@(entity,"#calendar")
+                    }
+                    #$
+                    div(class="col-12 col-sm-4 col-md-6 align-self-end d-flex gap-4")
+                    {
+                        div(class="dropdown")
+                        {
+                            button(class="btn btn-sm btn-secondary shadow-none dropdown-toggle" type="button" id="dmb-event-links" "data-bs-toggle"="dropdown" "aria-expanded"="false"){"Enlaces"}
+                            ul(class="dropdown-menu" "aria-labelledby"="dmb-event-links"){$"#<links>"}
+                        }
+                        #!
+                        do createElMoveEvent(_p)
+                    }
+                    #!
+                    
+                }
+                #$
+                div(class="col-12")
+                {
+                    #!
+                    disabled = ""
+                    if isset("@enable_editing") { disabled = ifstr(@enable_editing,"","disabled") }
+                    #$
+                    label(class="form-label" "for"="caption"){"Descripción:"}
+                    textarea(class="form-control rounded-0 no-disable" name="caption" id="caption" rows="5" required="" "#<disabled>"=""){"#<fd('caption','tx',entity)>"}
+                }
+                div(class="col-12 py-1")
+                {
+                    div(class="form-check form-check-inline")
+                    {
+                        input(class="form-check-input" type="checkbox" name="important" id="important" "#<fd('important','ch',entity)>"="")
+                        label(class="form-check-label" "for"="important"){"¡Importante!"}
+                    }
+                }
+                div(class="col-12 col-sm-4 col-md-3")
+                {
+                    label(class="form-label" "for"="start"){"Inicio:"}
+                    input(class="form-control rounded-0" type="datetime-local" name="start" value="#<fd('start','dtm',entity)>" id="start" required="")
+                }
+                div(class="col-6 col-sm-4 col-md-3")
+                {
+                    label(class="form-label" "for"="duration"){"Duración:"}
+                    ##
+                    do uie.dbSelect(sel_duration)
+                    ##
+                    // input(class="form-control rounded-0" type="number" name="duration" value="#<fd('duration','nm',entity)>" id="duration" required="")
+                }
+                div(class="col-3 col-sm-2 col-md-1")
+                {
+                    label(class="form-label" "for"="backcolor"){"Fondo:"}
+                    input(class="form-control form-control-color rounded-0" type="color" name="backcolor" value="#<fd('backcolor','tx',entity)>" id="backcolor")
+                }
+                div(class="col-3 col-sm-2 col-md-1")
+                {
+                    label(class="form-label" "for"="color"){"Texto:"}
+                    input(class="form-control form-control-color rounded-0" type="color" name="color" value="#<fd('color','tx',entity)>" id="color")
+                }
             }
-            #!
-            
         }
-        #$
-        div(class="col-12")
+
+        div(class="tab-pane fade" id="participants" role="tabpanel" "aria-labelledby"="participants-tab")
         {
-            #!
-            disabled = ""
-            if isset("@enable_editing") { disabled = ifstr(@enable_editing,"","disabled") }
-            #$
-            label(class="form-label" "for"="caption"){"Descripción:"}
-            textarea(class="form-control rounded-0 no-disable" name="caption" id="caption" rows="5" required="" "#<disabled>"=""){"#<fd('caption','tx',entity)>"}
-        }
-        div(class="col-12 py-1")
-        {
-            div(class="form-check form-check-inline")
+            input(type="hidden" name="participants" value='#<to.json(participants)>')
+            div(class="d-flex align-items-center flex-wrap border gap-1 px-2 py-1")
             {
-                input(class="form-check-input" type="checkbox" name="important" id="important" "#<fd('important','ch',entity)>"="")
-                label(class="form-check-label" "for"="important"){"¡Importante!"}
+                small(class="text-muted"){ " Nueva fila " kbd{$"&DownArrow;"} " Eliminar fila " kbd{$"Ctrl"} " + " kbd{$"Supr"} }
             }
-        }
-        div(class="col-12 col-sm-4 col-md-3")
-        {
-            label(class="form-label" "for"="start"){"Inicio:"}
-            input(class="form-control rounded-0" type="datetime-local" name="start" value="#<fd('start','dtm',entity)>" id="start" required="")
-        }
-        div(class="col-6 col-sm-4 col-md-3")
-        {
-            label(class="form-label" "for"="duration"){"Duración:"}
-            ##
-            do uie.dbSelect(sel_duration)
-            ##
-            // input(class="form-control rounded-0" type="number" name="duration" value="#<fd('duration','nm',entity)>" id="duration" required="")
-        }
-        div(class="col-3 col-sm-2 col-md-1")
-        {
-            label(class="form-label" "for"="backcolor"){"Fondo:"}
-            input(class="form-control form-control-color rounded-0" type="color" name="backcolor" value="#<fd('backcolor','tx',entity)>" id="backcolor")
-        }
-        div(class="col-3 col-sm-2 col-md-1")
-        {
-            label(class="form-label" "for"="color"){"Texto:"}
-            input(class="form-control form-control-color rounded-0" type="color" name="color" value="#<fd('color','tx',entity)>" id="color")
+            "edit-table"(id="tbl_participants" "auto-confirm"="true" style="width:100%;"
+            "row-height"="1.2rem"
+            "control-styles"="
+                tr th { font-size:.9rem; outline:none !important; font-weight:500 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+                tr td { font-size:.8rem; }
+                #__table_input { font-size:unset !important; }
+            ")
+            {
+                "edit-thead"
+                {
+                    "edit-tr"
+                    {
+                        "edit-th"(type="Text" field="name" maxlength="250"){"Nombre"}
+                        "edit-th"(type="Text" field="email" maxlength="250"){"Correo"}
+                        "edit-th"(type="Text" field="phone" maxlength="50"){"Teléfono"}
+                        "edit-th"(type="Memo" field="notes"){"Notas"}
+                    }
+                }
+            }
         }
     }
+
+
 
     input(type="hidden" name="detsrc" value="#<@@(entity,'$detsrc')>")
     input(type="hidden" name="srcid" value="#<@@(entity,'#srcid')>")

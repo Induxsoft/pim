@@ -26,6 +26,7 @@ module "Variables globales"
 	@pim_events_keyfield = "sys_pk"
 	@pim_members_keyfield = "sys_pk"
 	@pim_evtype_keyfield = "sys_pk"
+	@pim_extnotif_keyfield = "sys_pk"
 	@pim_nylas_keyfield = "sys_pk"
 
 	@pim_calendar = "/!/pim/calendar/"
@@ -49,6 +50,11 @@ module "Variables globales"
 	@pim_events_type_new = "/!/pim/events-type/_new/"
 	@pim_events_type_edt = "/!/pim/events-type/@_entity_id/"
 	@pim_events_type_del = @pim_events_type_edt
+
+	@pim_event_type_notif = "/!/pim/event-type-notif/?event_type_id=@event_type_id"
+	@pim_event_type_notif_new = "/!/pim/event-type-notif/_new/?event_type_id=@event_type_id"
+	@pim_event_type_notif_edt = "/!/pim/event-type-notif/@_entity_id/"
+	@pim_event_type_notif_del = @pim_event_type_notif_edt
 
 	@pim_nylas_new = "/!/pim/nylas/_new/?calendar_id=@calendar_id"
 	@pim_nylas_edt = "/!/pim/nylas/@_entity_id/"

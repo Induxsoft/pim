@@ -15,6 +15,7 @@ module ""
     #include "pim/_lib/config.dk"
     #include "pim/_lib/lib.dk"
     #include "pim/pim_events/model.dk"
+    #include "pim/pim_event_participant/model.dk"
     #include "model.dk"
 
     do errordet(@false)

@@ -2,10 +2,12 @@ var events = {
     form_id:"", form:null, ff:null,
     url_bitacora:"",
     is_new:false,
+    
     init()
     {
         this.form = document.getElementById(this.form_id);
         this.ff = this.form.elements;
+        this.initTableParticipants();
         this.setLog()
 
         const type = this.ff['type'];
@@ -60,6 +62,29 @@ var events = {
 
         this.form.insertAdjacentElement("afterend",div);
         setTimeout(() => { div.remove() }, (10 * 1000));
+    },
+
+    initTableParticipants()
+    {
+        const table = document.getElementById('tbl_participants');
+        if (!table) return;
+
+        const input = document.querySelector('input[name="participants"]');
+        table.DataArray = JSON.parse(input.value);
+        table._printRows();
+
+        table.Events['rowdeleted'] = function(e) {
+            input.value = JSON.stringify(e.sender.DataArray);
+        }
+        table.Events['fieldupdated'] = function(e) {
+            input.value = JSON.stringify(e.sender.DataArray);
+        }
+
+        let rows = table.DataArray.length;
+        while (rows < 7) {
+            table.AddRow();
+            rows++;
+        }
     },
 
     setLog()

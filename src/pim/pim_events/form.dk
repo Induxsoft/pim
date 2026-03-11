@@ -12,6 +12,7 @@ module "form.dk"
     do @context.begin(@crud_context)
 
     ref entity = ifnull(@("&./entity"),record.create())
+    ref participants = ifnull(@("&./participants"),list.create())
     
 	@_entities_type = @("$parameters/_entities_type")
 	@_entity_id = @("$parameters/_entity_id")

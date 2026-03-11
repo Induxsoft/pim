@@ -23,3 +23,9 @@ TF40,Tipos de eventos de calendario,pim.evtypes
 TF41,Crear tipo de eventos de calendario,pim.evtypes
 TF42,Editar tipo de evento de calendario,pim.evtypes
 TF43,Eliminar tipo de evento de calendario,pim.evtypes
+TF44,Configuración de notificaciones externas,pim.evtypes
+pim.event_type_notif,Configuración de notificaciones por tipo de evento,pim
+TF50,Notificaciones por tipo de evento,pim.event_type_notif
+TF51,Agregar notificación,pim.event_type_notif
+TF52,Editar notificación,pim.event_type_notif
+TF53,Eliminar notificación,pim.event_type_notif

@@ -1,0 +1,246 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    @table_name = "pim_event_type_notif" // params._entities_type
+    @keyfield = @pim_extnotif_keyfield // params._key
+    @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user"
+
+    @list_query = "
+    SELECT
+        n.sys_pk,
+        n.sys_guid,
+        (CASE
+            WHEN n.advance_minutes < 60 THEN CONCAT(n.advance_minutes, ' Minutos')
+            WHEN n.advance_minutes < 1440 THEN CONCAT(FLOOR(n.advance_minutes / 60), ' Horas')
+            ELSE CONCAT(FLOOR(n.advance_minutes / 1440), ' Días')
+        END) AS anticipation,
+        et.nombre AS evtype,
+        c.name AS channel,
+        nt.const AS type,
+        if(n.enabled,'Sí','No') active
+    FROM #<@table_name> n
+        INNER JOIN pim_events_type et ON n.event_type = et.sys_pk
+        INNER JOIN pim_notif_type nt ON n.notif_type = nt.id
+        INNER JOIN snd_channel c ON n.template = c.sys_pk
+    WHERE
+        NOT IFNULL(n.sys_deleted,0)
+        AND (@event_type IS NULL OR n.event_type = @event_type)
+        AND (@search IS NULL OR c.name LIKE CONCAT('%',@search,'%'))
+    LIMIT #<@default_max_rows>
+    "
+
+    @read_query = "SELECT * FROM #<@table_name> WHERE #<@keyfield> = @_entity_id LIMIT 1"
+
+    function prepareView(&db,&params,&data)
+    {
+        is_new = @@(params,"$_entity_id") == "_new"
+        ref events_type = dbr.list(db,"select sys_pk, nombre from pim_events_type where not ifnull(sys_deleted,0)",@null)
+
+        if @@(params,"$_operation") == "list"
+        {
+            using data
+            {
+                @"pim_events_type*": events_type
+                @"itemactions*": dbr.apps.itemactions(db,"DET0B4","action","",0)
+                @"itemreports*": dbr.apps.itemactions(db,"DET0B4","report","",0)
+            }
+        }
+        if isanyword(@@(params,"$_operation"),"read,create,update")
+        {
+            do list.ins(events_type,0,from.json('{ "sys_pk":"", "nombre":"Seleccione..." }'))
+
+            ref snd_channel = dbr.list(db,"select sys_pk, name from snd_channel where not ifnull(sys_deleted,0)",@null)
+            do list.ins(snd_channel,0,from.json('{ "sys_pk":"", "name":"Seleccione..." }'))
+
+            using data
+            {
+                @"pim_events_type*": events_type
+                @"snd_channel*": snd_channel
+                @"pim_notif_type*": dbr.list(db,"select * from pim_notif_type",@null)
+            }
+
+            template = @@(params,"#template")
+            if template < 1 { template = @@(data,"#template") }
+            if template > 0
+            {
+                template >> params
+                json = dbr.str(db,"select if(ifnull(p.manifest,'')='', '{}', p.manifest) from snd_channel c inner join snd_provider p on c.prov = p.sys_pk where c.sys_pk = @template",params)
+                ref manifest = from.json(json)
+                data<"template_controls*"> : @@(manifest,"&template")
+            }
+
+            json = @@(data,"$params")
+            if json == "" { json = "{}" }
+            data<"params*"> : from.json(json)
+        }
+    }
+    
+    //#region validateFields()
+    function validateFields(&data)
+    {
+        if @@(data,"#event_type") < 1 { do rise_error(511,"Tipo de evento es requerido") }
+        if @@(data,"#advance_minutes") < 1 { do rise_error(512,"Anticipación es requerido") }
+        if @@(data,"#template") < 1 { do rise_error(513,"Canal es requerido") }
+        if @@(data,"#notif_type") < 0 { do rise_error(514,"Tipo de notificación es requerido") }
+        
+        if field.typeof(data,"params") == 3 { data<"params"> : to.json(@@(data,"&params")) }
+    }
+
+    function getEventType(&db,&params)
+    {
+        if @pim_evtype_keyfield == "sys_pk" { return @@(params,"#event_type_id") }
+        return dbr.num(db,ftext("select sys_pk from pim_events_type where #<@pim_evtype_keyfield> = @event_type_id"),params)
+    }
+
+    //#region list()
+    function entity.list(&db,&params)
+    {
+        do dbr.apps.action.grant("TF50")
+        
+        if not(field.exist(params,"event_type")) && field.exist(params,"event_type_id") { params<"event_type"> : getEventType(db,params) }
+        
+        new data
+        {
+            @"data*": dbr.list(db,ftext(@list_query),params)
+        }
+        do prepareView(db,params,data)
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region read()
+    function entity.read(&db,&params)
+    {
+        do dbr.apps.action.grant("TF50")
+
+        ref data = dbr.rec(db,ftext(@read_query),params)
+
+        if not(isset("@just_read_entity")) { @just_read_entity = @false }
+        if @just_read_entity { return data }
+
+        if field.exist(params,"advance_minutes") { data.advance_minutes := @@(params,"#advance_minutes") }
+        if field.exist(params,"template") { data.template := @@(params,"#template") }
+        if field.exist(params,"notif_type") { data.notif_type := @@(params,"#notif_type") }
+
+        do prepareView(db,params,data)
+
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region blank()
+    function entity.blank(&db,&params)
+    {
+        do dbr.apps.action.grant("TF50")
+        
+        if not(field.exist(params,"event_type")) && field.exist(params,"event_type_id") { params<"event_type"> : getEventType(db,params) }
+        
+        ref data = record.copy(params,"event_type,advance_minutes,notif_type,template,params,enabled")
+        do prepareView(db,params,data)
+        return data
+        
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region create()
+    function notif.create(&db,&params,&data)
+    {
+        // @use_transaction = @false
+        @just_read_entity = @true
+
+        do dbr.apps.action.grant("TF51")
+
+        do validateFields(data)
+        ref entity = entity.create(db,params,data)
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region update()
+    function notif.update(&db,&params,&data)
+    {
+        // @use_transaction = @false
+        @just_read_entity = @true
+
+        do dbr.apps.action.grant("TF52")
+
+        do validateFields(data)
+        ref entity = entity.update(db,params,data)
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region delete()
+    function notif.delete(&db,&params)
+    {
+        // @use_transaction = @false
+        do dbr.apps.action.grant("TF53")
+
+        ref entity = @null
+        deleted = @false
+
+        codeblock "Intentar eliminación física"
+        {
+            do entity.delete(db,params)
+            deleted = @true
+            
+            exception
+            {
+                do dbr.apps.action.log()
+                do pop_exception()
+            }
+        }
+        if not(deleted)
+        {
+            lastuser = @@(@http_context,"$session/user/uid")
+            sql = ftext("
+            UPDATE #<@table_name> SET
+                sys_timestamp = NOW(),
+                sys_lastuser = #<lastuser>,
+                sys_deleted = 1
+            WHERE #<@keyfield> = @_entity_id
+            ")
+            do dbr.execute(db,sql,params)
+            ref entity:entity.read(db,params)
+        }
+
+        return entity
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region catch()
+    function catch(&db,&params,&data)
+    {
+        do errordet(@false)
+        code = last_error_code()
+        error = last_error()
+
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if isset("@@_action_context") { do dbr.apps.action.log() }
+
+        if isanyword(@@(params,"$_operation"),"create,update")
+        {
+            if isnull(data) { ref data:record.create() }
+            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores." }
+        }
+        else if @@(params,"$_operation") == "delete"
+        {
+            if contains(error,"Cannot delete or update a parent row") || contains(error,"DELETE Error") {
+                error = "No es posible eliminar, otros registros dependen del elemento proporcionado."
+            }
+        }
+        
+        do clear_exceptions()
+        do rise_error(code,error)
+    }
+
+    point @create to notif.create
+    point @update to notif.update
+    point @delete to notif.delete
+}

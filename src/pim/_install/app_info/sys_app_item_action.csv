@@ -18,3 +18,9 @@ TF40,Tipos de eventos de calendario,Tipos de eventos,,/!/pim/events-type/,0,pim.
 TF41,Crear tipo de eventos de calendario,Agregar,,/!/pim/events-type/_new/,0,pim.evtypes,DET0B1,0,action
 TF42,Editar tipo de evento de calendario,Editar,,/!/pim/events-type/@_src_context_item_id/,0,pim.evtypes,DET0B1,1,action
 TF43,Eliminar tipo de evento de calendario,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,pim.evtypes,DET0B1,1,action
+TF44,Notificaciones externas,Notificaciones,,/!/pim/event-type-notif/?event_type_id=@_src_context_item_id,0,pim.evtypes,DET0B1,1,action
+
+TF50,Notificaciones por tipo de evento,Notificaciones,,/!/pim/event-type-notif/,0,pim.event_type_notif,DET0B4,0,shortcut
+TF51,Agregar notificación,Agregar,,/!/pim/event-type-notif/_new/,0,pim.event_type_notif,DET0B4,0,action
+TF52,Editar notificación,Editar,,/!/pim/event-type-notif/@_src_context_item_id/,0,pim.event_type_notif,DET0B4,1,action
+TF53,Eliminar notificación,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,pim.event_type_notif,DET0B4,1,action

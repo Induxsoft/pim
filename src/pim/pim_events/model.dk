@@ -2,6 +2,8 @@
 #!
 module ":events"
 {
+    #include "pim/pim_event_participant/model.dk"
+
     @table_name = "pim_events"
     @keyfield = @pim_events_keyfield
     @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user,calendar"
@@ -37,6 +39,7 @@ module ":events"
     WHERE e.#<@keyfield> = @_entity_id
     LIMIT 1
     "
+    @childs_query = "SELECT sys_pk,sys_recver,name,email,phone,notes FROM pim_event_participant WHERE event = IFNULL(@event,@sys_pk)"
     @calendar_query = "SELECT * FROM pim_calendar WHERE #<@pim_calendar_keyfield> = @calendar LIMIT 1"
 
     @list_query_calendar = "
@@ -339,6 +342,9 @@ module ":events"
         {
             if not(field.exist(data,"entity")) { data<"entity*"> : read(db,params) }
             do parseEventLinks(db,@@(data,"&entity"))
+            
+            params<"event"> : @@(data,"#entity/sys_pk")
+            data<"participants*"> : dbr.list(db,@childs_query,params)
         }
     }
 
@@ -488,6 +494,8 @@ module ":events"
         if @@(data,"$detsrc") == "" { do field.remove(data,"detsrc") }
         if @@(data,"#srcid") < 1 { do field.remove(data,"srcid") }
         if @@(data,"$tag") == "" { do field.remove(data,"tag") }
+
+        do participants.validate(data)
     }
 
     //#region list()
@@ -500,16 +508,17 @@ module ":events"
     function read(&db,&params)
     {
         do dbr.apps.action.grant("TF20")
+        ref entity = entity.read(db,params)
 
         if not(isset("@just_read_entity")) { @just_read_entity = @false }
-        if @just_read_entity { return entity.read(db,params) }
+        if @just_read_entity { return entity }
 
         params<"logged_user_pk"> : GetPkUsr(db,@@(@http_context,"$session/user/uid"))
         params<"logged_user_guid"> : GetGuidUsr(db,@@(@http_context,"$session/user/uid"))
 
         new data 
         { 
-            @"entity*": entity.read(db,params) 
+            @"entity*": entity
             @"calendars*":dbr.list(db,ftext(@list_query_calendar),params)
         }
         
@@ -559,6 +568,7 @@ module ":events"
         do dbr.begin(db)
 
         do validateFields(db,params,data)
+        do participants.setAsChildren(data)
         ref entity = entity.create(db,params,data)
 
         do dbr.apps.action.pos(entity)
@@ -579,6 +589,7 @@ module ":events"
         @just_read_entity = @true
         
         do validateEventAction(db,@@(data,"#calendar"))
+        do dbr.begin(db)
 
         if @@(params,"$action")=="change-calendar"
         {
@@ -589,7 +600,6 @@ module ":events"
                 @"duration":dbr.num(db,"SELECT duration FROM pim_events WHERE sys_pk=@_entity_id;",params)
             }
             data<"type">:dbr.num(db,"select type from pim_events WHERE sys_pk=@_entity_id;",params) //montar
-            do dbr.begin(db)
             
             do validateFields(db,params,data)
             ref resp= CheckAvailability(db,params)
@@ -600,10 +610,10 @@ module ":events"
             return params
         }
         do field.remove(data,"new_calendar")
-        do dbr.begin(db)
 
         if not(field.exist(data,@keyfield)) { data<@keyfield> : @@(params,"$_entity_id") }
         do validateFields(db,params,data)
+        do participants.setAsChildren(data)
         ref entity = entity.update(db,params,data)
 
         do dbr.apps.action.pos(entity)
@@ -623,8 +633,8 @@ module ":events"
         @use_transaction = @false
         @just_read_entity = @true
         
-        calendar_pk = dbr.num(db,ftext("select calendar from #<@table_name> where #<@keyfield> = @_entity_id"),params)
-        do validateEventAction(db,calendar_pk)
+        ref ev = dbr.rec(db,ftext("select sys_pk, calendar from #<@table_name> where #<@keyfield> = @_entity_id"),params)
+        do validateEventAction(db,@@(ev,"#calendar"))
 
         ref entity = @null
         deleted = @false
@@ -634,6 +644,7 @@ module ":events"
             do dbr.begin(db)
 
             // Eliminar registros relacionados aqui...
+            do participants.clean(db,@@(ev,"#sys_pk"))
             do entity.delete(db,params)
 
             do dbr.apps.action.pos(entity)

@@ -30,6 +30,29 @@ model "pim"
         @"notes" memo 
         @"uf_hidetoolbar" string(1) 
     }
+    
+    entity "snd_provider_tpy" : "EnumModel"
+    {
+        //0-E-Mail
+        //1-TEXT
+        //2-IM
+    }
+
+    entity "snd_provider" : "TableModel"
+    {
+        @"name" string(32) unique required
+        @"tpy" ref:"snd_provider_tpy" required
+        @"entry_point" string(256)  // URL relativa de acceso a los controles del proveedor
+        @"lib" string(256) required // Ruta hacia la biblioteca que implementa las funciones de la interfaz
+        @"manifest" mmemo 
+    }
+
+    entity "snd_channel" : "TableModel"
+    {
+        @"prov" ref:"snd_provider" required
+        @"name" string(32) unique required
+        @"config" mmemo
+    }
 
     //* ======================================== [ ENTIDADES PRINCIPALES ]
     entity "pim_calendar" : "TableModel"
@@ -121,5 +144,66 @@ model "pim"
         @"external_priority" bool // Indica si antes de agendar en v12 debe confirmarse disponibilidad en el externo
         @"disabled" bool // true=se suspende la sincronización bidireccional y verificaciones externas
         @"data" memo // Datos del intercabio de 'code' por el 'token' de acceso
+    }
+
+    // Participantes externos de un evento. Un evento puede tener múltiples participantes.
+    // `email` y `phone` son opcionales individualmente, pero al menos uno debe estar presente.
+    entity "pim_event_participant" : "TableModel"
+    {
+        @"event" ref:"pim_events" required
+        @"name" string(250) required
+        @"email" string(250)
+        @"phone" string(50)
+        @"notes" memo
+    }
+
+    // Tipos de notificación. Extensible en el futuro.
+    entity "pim_notif_type" : "EnumModel" {}
+
+    // Configuración de notificaciones por tipo de evento. Cada registro define un momento de aviso con su canal y plantilla. Un tipo de evento puede tener múltiples configuraciones.
+    entity "pim_event_type_notif" : "TableModel"
+    {
+        @"event_type" ref:"pim_events_type" required
+        @"advance_minutes" int required // minutos de anticipación al inicio del evento (ej. `60` = 1 hora antes, `1440` = 1 día antes).
+        @"notif_type" ref:"pim_notif_type" required
+        @"template" ref:"snd_channel" required // Determina el canal y los parámetros esperados.
+        @"params" memo required // objeto JSON con los valores concretos de los parámetros definidos en `snd_provider`.
+        @"enabled" bool
+    }
+
+    // Bitácora de notificaciones enviadas.
+    entity "pim_notif_log" : "TableModel"
+    {
+        @"event_guid"        string(32) required
+        @"config_guid"       string(32) required
+        @"participant_guid"  string(32) required
+        @"scheduled_for"     datetime required
+        @"participant_name"  string(250) required
+        @"participant_email" string(250)
+        @"participant_phone" string(50)
+        @"sent_at"           datetime
+        @"status"            string(20) required
+        @"channel_response"  memo
+        @"error_detail"      memo
+
+        index "pim_notif_log_idx1"
+        {
+            field "event_guid"
+        }
+        index "pim_notif_log_idx2"
+        {
+            field "config_guid"
+        }
+        index "pim_notif_log_idx3"
+        {
+            field "status"
+            field "scheduled_for"
+        }
+        index "pim_notif_log_idx4" unique
+        {
+            field "event_guid"
+            field "config_guid"
+            field "participant_guid"
+        }
     }
 }

@@ -1,0 +1,227 @@
+#include "dkli.dkh"
+#!
+module "form.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "uielements.v12.dkl"
+    #include "dbr.controls.dkl"
+    #include "../_lib/config.dk"
+    // #include "../_lib/lib.dk"
+	// #include "../_lib/icons.dk"
+
+    do @context.begin(@crud_context)
+
+	@_entities_type = @("$parameters/_entities_type")
+	@_entity_id = @("$parameters/_entity_id")
+	@is_new = (@_entity_id == "_new")
+    @form_id = @_entities_type
+    url_exit = replace(@pim_event_type_notif,"@event_type_id",@("$parameters/event_type_id")) + "&event_type="+@("$./event_type")
+
+    function printNavButtons()
+    {
+        cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners no-shadow"
+        #$
+        button(class="#<cls>" type="submit" form="#<@form_id>" title="Guardar"){$"Guardar"}
+        #!
+    }
+    point buttons to printNavButtons
+    new nav_config
+    {
+        @"title": ifstr(@is_new,"Crear","Editar")+" notificación"
+        @"urlexit": url_exit
+        @"buttons*": buttons
+        
+        member @"hidden"
+        {
+            @"send": @true
+            @"copy": @true
+            @"csv": @true
+            @"print": @true
+        }
+    }
+
+    new pim_events_type
+    {
+        @"id": "event_type"
+        @"text_field": "nombre"
+        @"value_field": "sys_pk"
+        @"datatable*": ifnull(@("&./pim_events_type"), list.create())
+        @"selected": @("./event_type")
+        member "attributes"
+        {
+            @"class": "form-select"
+            @"name": "event_type"
+            @"required": ""
+        }
+        member "attr_options"
+        {
+            @"#<ifstr(@@(row,'$sys_pk')=='', 'disabled', '')>": ""
+        }
+    }
+
+    new anticipation_unit
+    {
+        @"id": "anticipation_unit"
+        @"text_field": "const"
+        @"value_field": "id"
+        @"datatable*": from.json('[
+            { "id":"minutes", "const":"Minutos" },
+            { "id":"hours", "const":"Horas" },
+            { "id":"days", "const":"Días" }
+        ]')
+        member "attributes"
+        {
+            @"class": "form-select"
+        }
+    }
+
+    new snd_channel
+    {
+        @"id": "snd_channel"
+        @"text_field": "name"
+        @"value_field": "sys_pk"
+        @"datatable*": ifnull(@("&./snd_channel"), list.create())
+        @"selected": @("./template")
+        member "attributes"
+        {
+            @"class": "form-select"
+            @"name": "template"
+            @"required": ""
+        }
+        member "attr_options"
+        {
+            @"#<ifstr(@@(row,'$sys_pk')=='', 'disabled', '')>": ""
+        }
+    }
+
+    new pim_notif_type
+    {
+        @"id": "notif_type"
+        @"text_field": "const"
+        @"value_field": "id"
+        @"datatable*": ifnull(@("&./pim_notif_type"), list.create())
+        @"selected": @("#./notif_type")
+        member "attributes"
+        {
+            @"class": "form-select"
+            @"name": "notif_type"
+            @"required": ""
+        }
+    }
+
+    ref ch_params_def = ifnull(@("&./template_controls"), record.create())
+    ref @control_params = @("&./params")
+    
+    // Encapsula a la vista en su totalidad, todo lo que hay antes o después no se considera 
+    #$
+    div(class="container-lg" id="view")
+    {
+        // Filtros y acciones
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+        // Contenido principal
+        section(id="work_area" style="overflow-y:auto; overflow-x:hidden;")
+        {
+            link(href="#<@css_main>" rel="stylesheet")
+            #!
+            error = @("$error/message")
+            if error != ""
+            {
+                #$
+                div(class="alert alert-danger alert-dismissible fade show mb-2 pb-1" role="alert")
+                {
+                    div(class="w-100 overflow-auto pb-2"){$"#<error>"}
+                    button(type="button" class="btn-close" "data-bs-dismiss"="alert" "aria-label"="Close"){""}
+                }
+            }
+            #$
+            form(class="px-1" action="./" method="POST" id="#<@form_id>")
+            {
+                input(type="hidden" name="sys_pk" value="#<@('#./sys_pk')>")
+                input(type="hidden" name="sys_recver" value="#<@('#./sys_recver')>")
+
+                div(class="row gx-1 gx-sm-2 gx-md-3 gx-lg-4")
+                {
+                    div(class="col-12 col-sm-4 col-md-3")
+                    {
+                        label(class="form-label" "for"="event_type"){"Tipo de evento"}
+                        ##
+                        do uie.dbSelect(pim_events_type)
+                        ##
+                    }
+                    div(class="col-12 col-sm-4 col-md-3")
+                    {
+                        label(class="form-label" "for"="advance_minutes"){"Anticipación"}
+                        div(class="input-group")
+                        {
+                            input(class="form-control" type="number" name="advance_minutes" value="#<@('#./advance_minutes')>" id="advance_minutes" required="")
+                            ##
+                            do uie.dbSelect(anticipation_unit)
+                            ##
+                        }
+                    }
+                    div(class="col-12 col-sm-4 col-md-3")
+                    {
+                        label(class="form-label" "for"="snd_channel"){"Canal"}
+                        ##
+                        do uie.dbSelect(snd_channel)
+                        ##
+                    }
+                    div(class="col-12 col-sm-4 col-md-3")
+                    {
+                        label(class="form-label" "for"="notif_type"){"Tipo de notificación"}
+                        ##
+                        do uie.dbSelect(pim_notif_type)
+                        ##
+                    }
+                    div(class="col-auto align-self-end pt-2")
+                    {
+                        #!
+                        checked = ifstr(@("#./enabled/") || @is_new, "checked", "")
+                        #$
+                        div(class="form-check")
+                        {
+                            input(class="form-check-input" type="checkbox" name="enabled" value="1" id="enabled" "#<checked>"="")
+                            label(class="form-check-label" "for"="enabled"){"Activo"}
+                        }
+                    }
+                }
+            }
+
+            form(action="row" id="form-params")
+            {""
+                #!
+                do dbr.control.GenerateHtml(@("&database"), ch_params_def)
+                #$
+            }
+        }
+        // Resúmenes y datos al pie
+        section(id="bottom_area")
+        {
+            //////////////////////////////////////////////////////////////////
+            div(id="_custom_area")
+            {
+                script(src="/$/pim/js/pim_evtype_notif.js"){""}
+                script(type="text/javascript")
+                {$'
+                    document.addEventListener("DOMContentLoaded", () => {
+                        event_type_notif.form_id = "#<@form_id>";
+                        event_type_notif.urlexit = "#<url_exit>";
+                        event_type_notif.init();
+                        // Script injection
+                        #<@@(@crud_context,"$script")>
+                    });
+                '}
+            }
+        }
+    }
+    #!
+    
+    do @context.end()
+}
