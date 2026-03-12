@@ -42,6 +42,17 @@ program ""
         do print("------------------------------------------------------------")
     }
 
+    from.djson :: json, djson
+    {
+        if json == "" { json = djson }
+        return from.json(json)
+        exception
+        {
+            do pop_exception()
+            return from.json(djson)
+        }
+    }
+
     ExtractJsonAsObject :: input
     {
         if not(isset("@_retries_to_extract_json")) { @_retries_to_extract_json = 0 }
@@ -143,7 +154,8 @@ program ""
             n.sys_guid AS config_guid,
             n.advance_minutes,
             n.template,
-            n.params
+            n.params,
+            n.tempvars
         FROM
             pim_events e
             JOIN pim_calendar c ON c.sys_pk = e.calendar
@@ -190,15 +202,28 @@ program ""
 
     GetEventContext :: &event
     {
-        ref context = record.copy(event,"event_id,event_caption,event_start,event_start_date,event_start_time,event_duration,event_type, calendar_id,calendar_name, participant_name,participant_email,participant_phone")
-        return context
+        ref tempvars = from.djson(@@(event,"$tempvars"), "[]")
+        
+        vars = ""
+        for i = 0; i < list.count(tempvars)
+        {
+            ref item = list.obj(tempvars,i)
+            varname = @@(item,"$varname")
+            vars = vars + varname + ","
+        }
+
+        if vars == ""
+        {
+            vars = "event_id,event_caption,event_start,event_start_date,event_start_time,event_duration,event_type,calendar_id,calendar_name,participant_name,participant_email,participant_phone,"
+        }
+        vars = rremove(vars,1)
+        
+        return record.copy(event,vars)
     }
 
     ResolveMarksInParams :: &event, &context
     {
-        json = @@(event,"$params")
-        if json == "" { json = "{}" }
-        ref params = from.json(json)
+        ref params = from.djson(@@(event,"$params"), "{}")
 
         ref keys = list.create_from_fields(params)
         ref marks = list.create_from_fields(context)
@@ -207,13 +232,13 @@ program ""
         for i = 0; i < list.count(keys)
         {
             key = list.str(keys,i)
-            val = field.str(params,key)
+            val = @@(params,"$"+key)
 
             if contains(val,"{{") {
                 for n = 0; n < count_marks
                 {
                     mark = list.str(marks,n)
-                    val = replace(val, "{{"+mark+"}}", field.str(marks,mark))
+                    val = replace(val, "{{"+mark+"}}", @@(context,"$"+mark))
                 }
                 params<key> : val
             }
@@ -284,6 +309,7 @@ program ""
     else
     {
         ref args = commandline("=")
+
         if @@(args,"$db") == "" { do rise_error(400,"Nombre cualificado de conexión es requerido.") }
         ref db = dbr.open(@@(args,"$db"))
     }

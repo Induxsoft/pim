@@ -111,6 +111,25 @@ module "form.dk"
         }
     }
 
+    new tempvars
+    {
+        // Del evento (`pim_events`)
+        @"event_id": "{{event_id}} - Identificador numérico del evento"
+        @"event_caption": "{{event_caption}} - Descripción del evento"
+        @"event_start": "{{event_start}} - Fecha y hora de inicio completa"
+        @"event_start_date": "{{event_start_date}} - Solo la fecha"
+        @"event_start_time": "{{event_start_time}} - Solo la hora"
+        @"event_duration": "{{event_duration}} - Duración en minutos"
+        @"event_type": "{{event_type}} - Nombre del tipo de evento"
+        // Del calendario (`pim_calendar`)
+        @"calendar_id": "{{calendar_id}} - Identificador numérico del calendario"
+        @"calendar_name": "{{calendar_name}} - Nombre del calendario"
+        // Del participante (`pim_event_participant`)
+        @"participant_name": "{{participant_name}} - Nombre del participante"
+        @"participant_email": "{{participant_email}} - Correo del participante"
+        @"participant_phone": "{{participant_phone}} - Teléfono del participante"
+    }
+
     ref ch_params_def = ifnull(@("&./template_controls"), record.create())
     ref @control_params = @("&./params")
     
@@ -183,7 +202,7 @@ module "form.dk"
                     div(class="col-auto align-self-end pt-2")
                     {
                         #!
-                        checked = ifstr(@("#./enabled/") || @is_new, "checked", "")
+                        checked = ifstr(@("#./enabled") || @is_new, "checked", "")
                         #$
                         div(class="form-check")
                         {
@@ -192,6 +211,8 @@ module "form.dk"
                         }
                     }
                 }
+
+                input(type="hidden" name="tempvars" value='#<@("$./tempvars")>')
             }
 
             form(action="row" id="form-params")
@@ -199,6 +220,35 @@ module "form.dk"
                 #!
                 do dbr.control.GenerateHtml(@("&database"), ch_params_def)
                 #$
+            }
+
+            div(class="d-flex align-items-center flex-wrap border gap-1 px-2 py-0 mt-3")
+            {
+                small(class="text-muted"){"Variables posicionales: indique en orden las variables dinámicas a ocupar"}
+                // small(class="text-muted"){ " Nueva fila " kbd{$"&DownArrow;"} " Eliminar fila " kbd{$"Ctrl"} " + " kbd{$"Supr"} }
+                div(class="flex-grow-1 text-end")
+                {
+                    small(class="text-muted"){$"|"}
+
+                    button(class="btn btn-sm rounded-0" type="button" id="btn-add-var"){"+ Agregar"}
+                    button(class="btn btn-sm rounded-0" type="button" id="btn-del-var"){"- Quitar"}
+                }
+            }
+            "edit-table"(id="table-vars" "auto-confirm"="true" style="width:100%;"
+            "row-height"="1.2rem"
+            "control-styles"="
+                tr th { font-size:.9rem; outline:none !important; font-weight:500 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+                tr td { font-size:.8rem; }
+                #__table_input { font-size:unset !important; }
+            ")
+            {
+                "edit-thead"
+                {
+                    "edit-tr"
+                    {
+                        "edit-th"(type="Select" field="varhelp" keyfield="varname" options='#<to.json(tempvars)>'){"Variable"}
+                    }
+                }
             }
         }
         // Resúmenes y datos al pie

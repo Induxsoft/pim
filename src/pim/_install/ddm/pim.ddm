@@ -168,6 +168,7 @@ model "pim"
         @"notif_type" ref:"pim_notif_type" required
         @"template" ref:"snd_channel" required // Determina el canal y los parámetros esperados.
         @"params" memo required // objeto JSON con los valores concretos de los parámetros definidos en `snd_provider`.
+        @"tempvars" memo // Variables posicionales a ocupar
         @"enabled" bool
     }
 

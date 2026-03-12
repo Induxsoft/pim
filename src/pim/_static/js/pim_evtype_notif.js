@@ -18,6 +18,31 @@ var event_type_notif = {
 
             window.location.href = url + (url.includes('?') ? '&' : '?') + qry;
         });
+
+        this.initTableVars();
+    },
+
+    initTableVars()
+    {
+        const table = document.getElementById('table-vars');
+        if (!table) return;
+
+        const input = document.querySelector('input[name="tempvars"]');
+        table.DataArray = JSON.parse(input.value || "[]");
+        table._printRows();
+
+        document.getElementById('btn-add-var')
+        .addEventListener('click', () => table.AddRow());
+        
+        document.getElementById('btn-del-var')
+        .addEventListener('click', () => table.DeleteCurrentRow());
+
+        table.Events['rowdeleted'] = function(e) {
+            input.value = JSON.stringify(e.sender.DataArray);
+        }
+        table.Events['fieldupdated'] = function(e) {
+            input.value = JSON.stringify(e.sender.DataArray);
+        }
     },
 
     formObj(formOrId) {

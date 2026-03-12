@@ -85,6 +85,7 @@ module ""
         if @@(data,"#notif_type") < 0 { do rise_error(514,"Tipo de notificación es requerido") }
         
         if field.typeof(data,"params") == 3 { data<"params"> : to.json(@@(data,"&params")) }
+        if field.typeof(data,"tempvars") == 3 { data<"tempvars"> : to.json(@@(data,"&tempvars")) }
     }
 
     function getEventType(&db,&params)
