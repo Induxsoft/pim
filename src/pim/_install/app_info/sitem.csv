@@ -29,3 +29,4 @@ TF50,Notificaciones por tipo de evento,pim.event_type_notif
 TF51,Agregar notificación,pim.event_type_notif
 TF52,Editar notificación,pim.event_type_notif
 TF53,Eliminar notificación,pim.event_type_notif
+TF54,Notificar eventos a usuarios externos,pim.event_type_notif

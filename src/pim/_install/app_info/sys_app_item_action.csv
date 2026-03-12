@@ -24,3 +24,4 @@ TF50,Notificaciones por tipo de evento,Notificaciones,,/!/pim/event-type-notif/,
 TF51,Agregar notificación,Agregar,,/!/pim/event-type-notif/_new/,0,pim.event_type_notif,DET0B4,0,action
 TF52,Editar notificación,Editar,,/!/pim/event-type-notif/@_src_context_item_id/,0,pim.event_type_notif,DET0B4,1,action
 TF53,Eliminar notificación,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,pim.event_type_notif,DET0B4,1,action
+TF54,Notificar eventos a usuarios externos,Notificar eventos,,/!/batch/taskman/TF/notificar.eventos/?exit_url_encode=LyEvcGltL2V2ZW50LXR5cGUtbm90aWYv,0,pim.event_type_notif,DET0B4,0,action
