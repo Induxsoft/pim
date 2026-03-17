@@ -6,15 +6,59 @@ module ":nylas"
     @keyfield = @pim_nylas_keyfield
     @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user,service_id,user_id,calendar_id"
 
+    function request(&db,method,params,&payload)
+    {
+        apikey = dbr.vars.get(db,"pim_calendar_sync_apikey")
+        secret = dbr.vars.get(db,"pim_calendar_sync_apisecret")
+
+        endpoint = add_url_params(@svc_nylas_induxsoft,params)
+        
+        new headers
+        {
+            @"Content-Type": "application/json"
+            @"Authorization": "Basic "+to.base64(apikey+":"+secret)
+        }
+
+        if isnull(payload) { response = http.request(endpoint,method,headers,@null) }
+        else { response = http.request(endpoint,method,headers,to.json(payload)) }
+
+        codeblock ""
+        {
+            ref resp = from.json(response)
+            exception
+            {
+                do pop_exception()
+                do rise_error(500,response)
+            }
+        }
+        if not(@@(resp,"#success")) { do rise_error(500,@@(resp,"$message")) }
+
+        return @@(resp,"&data")
+    }
+
     function read(&db,&params)
     {
         ref entity = entity.read(db,params)
 
+        json = @@(entity,"$data")
+        if json == "" { json = "{}" }
+        entity<"data*"> : from.json(json)
+
         if not(isset("@just_read_entity")) { @just_read_entity = @false }
         if @just_read_entity { return entity }
 
+        state = @@(entity,"$sys_guid") +"@"+ @@(entity,"$service_id")
+
         ref calendar = dbr.rec(db,"SELECT * FROM pim_calendar WHERE sys_guid = @calendar_id",entity)
-        entity<"_calendar*"> : calendar
+        ref evtypes = dbr.list(db,"SELECT sys_pk, nombre FROM pim_events_type WHERE NOT IFNULL(sys_deleted,0)",@null)
+        ref extcals = request(db, "GET", "action=get-calendars&state="+state, @null)
+        
+        using entity
+        {
+            @"_calendar*": calendar
+            @"_events_type*": evtypes
+            @"_external_calendars*": extcals
+        }
 
         return entity
 
@@ -65,16 +109,36 @@ module ":nylas"
         @use_transaction = @false
         @just_read_entity = @true
 
+        sync_calendar = @@(data,"$sync_calendar")
+        sync_eventype = @@(data,"$sync_eventype")
+
+        if sync_calendar == "" { do rise_error(511,"El calendario a sincronizar es requerido.") }
+        if sync_eventype == "" { do rise_error(512,"El tipo de evento a sincronizar es requerido.") }
+
+        ref entity = nylas.read(db,params)
+        ref info = @@(entity,"&data")
+        
+        sync_events = (@@(info,"$sync_calendar") == "")
+        sync_calendar, sync_eventype >> info
+        do field.remove(data,"sync_calendar")
+        do field.remove(data,"sync_eventype")
+
         do dbr.begin(db)
 
-        if field.exist(data,"send_events") { data<"send_events"> : parse.bool(@@(data,"$send_events")) }
-        if field.exist(data,"receive_events") { data<"receive_events"> : parse.bool(@@(data,"$receive_events")) }
-        if field.exist(data,"external_priority") { data<"external_priority"> : parse.bool(@@(data,"$external_priority")) }
-        if field.exist(data,"disabled") { data<"disabled"> : parse.bool(@@(data,"$disabled")) }
+        using data
+        {
+            @"send_events": parse.bool(@@(data,"$send_events"))
+            @"receive_events": parse.bool(@@(data,"$receive_events"))
+            @"external_priority": parse.bool(@@(data,"$external_priority"))
+            @"disabled": parse.bool(@@(data,"$disabled"))
+            @"data": to.json(info)
+        }
         
-        ref entity = entity.update(db,params,data)
+        ref entity:entity.update(db,params,data)
 
         do dbr.commit(db)
+
+        if sync_events { do synchronize(entity) }
 
         calendar_key = dbr.str(db,ftext("SELECT #<@pim_calendar_keyfield> FROM pim_calendar WHERE sys_guid = @calendar_id"),entity)
         @url_redir = replace(@pim_calendar_sync, "@_entity_id", calendar_key)
@@ -87,40 +151,54 @@ module ":nylas"
     function delete(&db,&params)
     {
         @use_transaction = @false
+        @just_read_entity = @true
 
-        ref entity = entity.read(db,params)
-        
-        apikey = dbr.vars.get(db,"pim_calendar_sync_apikey")
-        secret = dbr.vars.get(db,"pim_calendar_sync_apisecret")
-        state = @@(entity,"$sys_guid") +"@"+ @@(entity,"$service_id")
+        ref entity = nylas.read(db,params)
 
-        endpoint = @svc_nylas_induxsoft+"?action=delete-account&state="+state
-        new headers
+        if @@(entity,"$data/grant_id") == ""
         {
-            @"Content-Type": "application/json"
-            @"Authorization": "Basic "+to.base64(apikey+":"+secret)
+            do entity.delete(db,params)
         }
-        response = http.request(endpoint,"DELETE",headers,@null)
-        codeblock ""
+        else
         {
-            ref resp = from.json(response)
-            exception
-            {
-                do pop_exception()
-                do rise_error(500,response)
-            }
+            state = @@(entity,"$sys_guid") +"@"+ @@(entity,"$service_id")
+            ref resp = request(db, "DELETE", "action=delete-account&state="+state, @null)
+            /**
+            La eliminación del registro lo hace el webhook que dispara la solicitud DELETE previa.
+            Por lo que es posible que tarde unos segundos en reflejarse debido a que el webhook espera la notificación 'grant.deleted' de nylas.
+            */
+            do Sleep(1000)
         }
-        if not(@@(resp,"#success")) { do rise_error(500,@@(resp,"$message")) }
-
-        /**
-        La eliminación del registro lo hace el webhook que dispara la solicitud DELETE previa.
-        Es posible que tarde unos segundos en reflejarse debido a que el webhook espera la notificación 'grant.deleted' de nylas.
-        */
-        // do entity.delete(db,params)
 
         return @null
 
         exception{ do catch(db,params,@null) }
+    }
+
+    function synchronize(&cnn)
+    {
+        endpoint = "https://nylas-cloud.api.induxsoft.net/webhook.dkl"
+        new headers
+        {
+            @"Content-Type": "application/json"
+            @"Accept": "application/json"
+        }
+        new payload
+        {
+            @"id": uuid()
+            @"type": "grant.completed"
+            member "data"
+            {
+                member "object"
+                {
+                    @"grant_id": @@(cnn,"$data/grant_id")
+                    @"provider": @@(cnn,"$data/provider")
+                }
+            }
+        }
+        do http.request(endpoint,"POST",headers,to.json(payload))
+
+        exception{ do clear_exceptions() }
     }
 
     function catch(&db,&params,&data)

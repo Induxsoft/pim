@@ -32,6 +32,7 @@ program "Controlador de eventos"
         {
             ref cnn = getConnection(db,@@(output,"#calendar"))
             if not(canSync(cnn)) { break }
+            if @@(output,"#type") != @@(cnn,"#data/sync_eventype") { break }
             if @@(cnn,"#external_priority") {
                 // Antes de agendar en v12 se confirma disponibilidad en el externo.
                 do checkAvailabilityInExternal(cnn,output)
@@ -66,6 +67,7 @@ program "Controlador de eventos"
 
             ref cnn = getConnection(db,@@(output,"#calendar"))
             if not(canSync(cnn)) { break }
+            if @@(output,"#type") != @@(cnn,"#data/sync_eventype") { break }
 
             new query
             {
@@ -84,6 +86,7 @@ program "Controlador de eventos"
 
             ref cnn = getConnection(db,@@(evt,"#calendar"))
             if not(canSync(cnn)) { break }
+            // if @@(evt,"#type") != @@(cnn,"#data/sync_eventype") { break }
 
             new query
             {

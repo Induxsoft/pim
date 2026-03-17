@@ -14,6 +14,11 @@ module ""
         ref cal = dbr.rec(db,"select sys_guid from pim_calendar where sys_pk = @calendar_pk",p)
         ref cnn = dbr.rec(db,"select * from pim_nylas_connection where calendar_id = @sys_guid",cal)
 
+        if isnull(cnn) { return cnn }
+        json = @@(cnn,"$data")
+        if json == "" { json = "{}" }
+        cnn<"data*"> : from.json(json)
+
         return cnn
     }
 
@@ -22,6 +27,7 @@ module ""
         if isnull(cnn) { return @false }
         if @@(cnn,"#disabled") { return @false }
         if not(@@(cnn,"#send_events")) { return @false }
+        if @@(cnn,"$data/sync_calendar") == "" { return @false }
 
         return @true
     }

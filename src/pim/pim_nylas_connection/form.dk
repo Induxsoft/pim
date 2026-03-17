@@ -23,7 +23,7 @@ module ""
     url_exit = replace(@pim_calendar_sync, "@_entity_id", @calendar_key)
     url_schedule = replace(@pim_calendar_see, "@_entity_id", @calendar_key)
 
-    form_nylas_cloud = (url_referer != "" && contains(url_referer,"nylas-cloud")) || parse.bool(@("$parameters/from-nylas"))
+    form_nylas_cloud = @false //(url_referer != "" && contains(url_referer,"nylas-cloud")) || parse.bool(@("$parameters/from-nylas"))
     hide_top_area = (@is_new || form_nylas_cloud)
 
     function printNavButtons()
@@ -48,6 +48,48 @@ module ""
             @"send": @true
         }
     }
+
+    new external_calendars
+    {
+        @"id": "sync_calendar"
+        @"text_field": "name"
+        @"value_field": "id"
+        @"datatable*": ifnull(@("&./_external_calendars"), list.create())
+        @"selected": @("./data/sync_calendar")
+        member "attributes"
+        {
+            @"class": "form-select"
+            @"name": "sync_calendar"
+            @"required": ""
+        }
+        member "attr_options"
+        {
+            @"#<ifstr(@@(row,'$id')=='', 'disabled', '')>": ""
+        }
+    }
+    do list.ins(@@(external_calendars,"&datatable"),0,from.json('{ "id":"", "name":"Seleccione..." }'))
+    if @("$./data/sync_calendar") != "" { external_calendars<"attributes/disabled"> : "" }
+
+    new pim_events_type
+    {
+        @"id": "sync_eventype"
+        @"text_field": "nombre"
+        @"value_field": "sys_pk"
+        @"datatable*": ifnull(@("&./_events_type"), list.create())
+        @"selected": @("./data/sync_eventype")
+        member "attributes"
+        {
+            @"class": "form-select"
+            @"name": "sync_eventype"
+            @"required": ""
+        }
+        member "attr_options"
+        {
+            @"#<ifstr(@@(row,'$sys_pk')=='', 'disabled', '')>": ""
+        }
+    }
+    do list.ins(@@(pim_events_type,"&datatable"),0,from.json('{ "sys_pk":"", "nombre":"Seleccione..." }'))
+
     #$
     div(class="container" id="view")
     {
@@ -152,6 +194,20 @@ module ""
                                 input(class="form-check-input" type="checkbox" name="disabled" id="disabled" "#<checked>"="")
                                 label(class="form-check-label" "for"="disabled"){"Suspender la sincronización bidireccional y verificaciones externas"}
                             }
+                        }
+                        div(class="col-md-6")
+                        {
+                            label(class="form-label fw-bold" "for"="sync_calendar"){"Elige uno de tus calendarios de Google:"}
+                            ##
+                            do uie.dbSelect(external_calendars)
+                            ##
+                        }
+                        div(class="col-md-6")
+                        {
+                            label(class="form-label fw-bold" "for"="sync_eventype"){"Elige uno de los tipos de eventos de V12:"}
+                            ##
+                            do uie.dbSelect(pim_events_type)
+                            ##
                         }
                     }
                 }

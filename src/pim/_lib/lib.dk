@@ -9,6 +9,12 @@ module "Funciones de propósito general"
         ref lib_pim = _import_library("induxsoft.calendars.dll")
 
         /**
+        * Suspende el subproceso actual durante el número de milisegundos especificado.
+        *
+        * @param Int millisecondsTimeout | Número de milisegundos durante los que el subproceso está suspendido.
+        */
+        do _map_function(-1, "System.Threading.Thread", "Sleep", "Sleep", "System.Int32", "void")
+        /**
         * Comprueba rangos de horario.
         *
         * @param String timeOrDateTime | Horario a comprobar
