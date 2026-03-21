@@ -1,0 +1,98 @@
+#include "dkli.dkh"
+#!
+program ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+
+    //#region >CONSTANTS
+    do errordet(@false)
+
+    @MAX_THREADS = 3
+    @MONITOR_MS = 500
+    @WORKER_SCRIPT = "path/to/pim-notif-task.dkl"
+
+    @qname_main = ""
+    @default_lookback = 5
+    @default_retention = 30
+    //#endregion
+
+    //#region >FUNCTIONS
+    ref @lib_async = _import_library("dkl.async.dll")
+    do _map_function(@lib_async, "dkl.async.Tasks", "AsyncRunScript", "async.runscript","System.String, System.String, *System.Object","*")
+    do _map_function(@lib_async, "dkl.async.Tasks", "Wait", "async.wait","*System.Object, System.Int32","void")
+
+    GetActiveDatabases ::
+    {
+        ref db = dbr.open(@qname_main)
+        ref rs = dbr.list(db,"
+        SELECT svc_qname
+        FROM induxsoft.v12_hosting_service
+        WHERE
+            NOT IFNULL(sys_deleted,0)
+            AND svc_status = 10
+            AND svc_expire > NOW()
+        ",@null)
+        do dbr.close(db)
+        return rs
+    }
+
+    NewContext :: qname
+    {
+        new context
+        {
+            @"db": qname
+            @"lookback": @lookback
+            @"retention": @retention
+            @"status": "pending"
+        }
+        return context
+    }
+    //#endregion
+
+    //#region >MAIN
+    ref databases = GetActiveDatabases()
+    ref running = list.create()
+    ref tasks = list.create()
+    ref args = commandline("=")
+    
+    @lookback = field.dnum(args, "lookback", @default_lookback)
+    @retention = field.dnum(args, "retention", @default_retention)
+    total = list.count(databases)
+    index = 0
+
+    // Ciclo principal: continúa mientras haya procesos por lanzar o hilos activos
+    while or(index < total, list.count(running) > 0)
+    {
+        // Lanzar hilos nuevos hasta alcanzar @MAX_THREADS
+        while and(list.count(running) < @MAX_THREADS, index < total)
+        {
+            ref context = NewContext(@@(list.obj(databases,index), "$svc_qname"))
+            do list.add(tasks, async.runscript(@WORKER_SCRIPT, "orchestrator_context", context))
+            do list.add(running, context)
+            index = index + 1
+        }
+        
+        // Monitorear hilos: conservar solo los que aún no terminaron
+        ref still_running = list.create()
+        ref pending_tasks = list.create()
+        for i = 0; i < list.count(running)
+        {
+            ref item = list.obj(running, i)
+            if item.status != "finished"
+            {
+                do list.add(still_running, item)
+                do list.add(pending_tasks, list.obj(tasks,i))
+            }
+        }
+        ref running:still_running
+        ref tasks:pending_tasks
+
+        // Si el pool está lleno, pausar antes del siguiente ciclo de monitoreo
+        if list.count(running) >= @MAX_THREADS {
+            do async.wait(tasks, @MONITOR_MS)
+        }
+    }
+    //#endregion
+}

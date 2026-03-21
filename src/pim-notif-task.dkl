@@ -90,6 +90,7 @@ program ""
                         @_attempts_to_extract_json = @_attempts_to_extract_json + 1
                         return ExtractJsonAsObject(left(string,fin))
                     }
+                    @_attempts_to_extract_json = 0
                     break
                 }
             }
@@ -334,7 +335,7 @@ program ""
         ref replace = GetEventContext(event)
         do ResolveMarksInParams(event,replace)
         ref message = GetChannelSettings(db,event)
-        if isset("@batch_context") {
+        if isset("@batch_context") || isset("@orchestrator_context") {
             include @@(message,"$lib")
         }
         do field.remove(message,"lib")
