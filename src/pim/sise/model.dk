@@ -41,6 +41,19 @@ module ":rest"
 
 		return @null
 	}
+    filter_args::&record,fields
+    {
+        ref cleaned = record.copy(record,fields)
+        ref keys = list.create_from_fields(cleaned)
+        for i = 0; i < list.count(keys)
+        {
+            key = list.str(keys,i)
+            if isnull(@@(cleaned,"&"+key)) {
+                do field.remove(cleaned,key)
+            }
+        }
+        return cleaned
+    }
     ResponseText::text
     {
         // Establecer encabezado de respuesta http
@@ -234,6 +247,9 @@ module ":rest"
 
     SaveEvent::&db,&params,&payload
     {
+        ref cleaned = filter_args(@@(payload,"&data"),"calendar_id,event_id,type,caption,start,duration,important,backcolor,color,detsrc,srcid,tag,data,participants,response_type,suggested_days,only_on_the_hour")
+        payload<"data*"> : cleaned
+        
         payload<"_payload"> : to.json(payload)
         ref data = @@(payload,"&data")
         is_new = @true
@@ -397,7 +413,7 @@ module ":rest"
         {
             case "save-event" { return SaveEvent(db,params,payload) }
             case "delete-event" { return DelEvent(db,params,payload) }
-            default{ do rise_error(500,"Acción no identificada") }
+            default { do rise_error(500,"Acción no identificada") }
         }
 
         exception
