@@ -166,7 +166,7 @@ module ":rest"
         event_start = @@(event,"$start")
         event_duration = @@(event,"#duration")
 
-        success_message = ftext("Se ha agregado con éxito el evento #<event_type_name> (event_id:#<event_id>) al calendario #<calendar_name> (calendar_id:#<calendar_id>) el #<event_start> con una duración prevista de #<event_duration> minutos")
+        success_message = ftext("Se ha agregado el evento #<event_type_name> (event_id:#<event_id>) al calendario #<calendar_name> (calendar_id:#<calendar_id>) el #<event_start> con una duración prevista de #<event_duration> minutos.")
         
         return success_message
     }
@@ -240,25 +240,24 @@ module ":rest"
         event_start = @@(event,"$start")
         event_duration = @@(event,"#duration")
 
-        success_message = ftext("Se ha agregado con éxito el evento #<event_type_name> (event_id:#<event_id>) al calendario #<calendar_name> (calendar_id:#<calendar_id>) el #<event_start> con una duración prevista de #<event_duration> minutos")
+        success_message = ftext("El evento #<event_type_name> (event_id:#<event_id>) ha sido reagendado a #<event_start> en el calendario #<calendar_name> (calendar_id:#<calendar_id>).")
         
         return success_message
     }
 
     SaveEvent::&db,&params,&payload
     {
-        ref cleaned = filter_args(@@(payload,"&data"),"calendar_id,event_id,type,caption,start,duration,important,backcolor,color,detsrc,srcid,tag,data,participants,response_type,suggested_days,only_on_the_hour")
-        payload<"data*"> : cleaned
+        valid_fields = "calendar_id,event_id,type,caption,start,duration,important,backcolor,color,detsrc,srcid,tag,data,participants,response_type,suggested_days,only_on_the_hour"
+        // Filtrar campos validos de 'params'
+        ref fields_in_params = filter_args(params, valid_fields)
+        // Filtrar campos validos de 'payload.data'
+        ref fields_in_data = filter_args(@@(payload,"&data"), valid_fields)
+        // Combinar resultados prefiriendo los valores de 'payload.data'
+        payload<"data*"> : record.copyexin(fields_in_data, fields_in_params, "*", ",", "", ":")
         
         payload<"_payload"> : to.json(payload)
         ref data = @@(payload,"&data")
         is_new = @true
-
-        if trim(@@(params,"$calendar_id")) != "" { data<"calendar_id"> : @@(params,"$calendar_id") }
-        if trim(@@(params,"$type")) != "" { data<"type"> : @@(params,"$type") }
-        if field.exist(params,"response_type") { data<"response_type"> : @@(params,"$response_type") }
-        if field.exist(params,"suggested_days") { data<"suggested_days"> : @@(params,"#suggested_days") }
-        if field.exist(params,"only_on_the_hour") { data<"only_on_the_hour"> : @@(params,"$only_on_the_hour") }
         
         calendar_id = replace(trim(@@(data,"$calendar_id"))," ","")
         if calendar_id == "" { do rise_error(400,"No ha indicado el id del calendario.") }
@@ -315,7 +314,7 @@ module ":rest"
 
                 exception{ response_text = "No fue posible agendar el evento: "+last_error() }
 
-                if contains(response_text,"Se ha agregado con éxito el evento") || calendarios == 1 {
+                if contains(response_text,"Se ha agregado el evento") || calendarios == 1 {
                     return response_text
                 }
             }
@@ -388,7 +387,7 @@ module ":rest"
         do dbr.commit(db)
         do dbr.apps.action.ext(@null)
 
-        return "Se eliminó el evento"
+        return "El evento (event_id:"+@@(data,"$event_id")+") ha sido cancelado exitosamente."
         exception
         {
             if dbr.in_transaction(db) { do dbr.rollback(db) }
@@ -404,7 +403,7 @@ module ":rest"
     {
         ref db = GetDb()
         ref payload = ifnull(get_payload(),record.create())
-        ref params = record.copyex(_params(),@@(payload,"&params"),"*",",","",":")
+        ref params = record.copyex(_params(), ifnull(@@(payload,"&params"),record.create()), "*", ",", "", ":")
 
         @http_context<"request/get*"> : params
         if isnull(@@(@http_context,"&session/user")) { @http_context<"session/user*"> : record.create() }

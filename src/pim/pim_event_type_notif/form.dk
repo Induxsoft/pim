@@ -215,7 +215,7 @@ module "form.dk"
                 input(type="hidden" name="tempvars" value='#<@("$./tempvars")>')
             }
 
-            form(action="row" id="form-params")
+            form(class="row" id="form-params")
             {""
                 #!
                 do dbr.control.GenerateHtml(@("&database"), ch_params_def)
