@@ -15,7 +15,6 @@ program ""
     //#region >SETTINGS
     do errordet(@false)
 
-    ref @_calendar_owners_session = record.create()
     @_retries_to_extract_json = 1
     
     @default_lookback = 5
@@ -250,39 +249,6 @@ program ""
         return params
     }
 
-    /**
-    * Recupera la sesión induxsoft del propietario del calendario.
-    * event.calendar_owner -> tuser.induxsoft_identifier, tuser.induxsoft_token con caché en @_calendar_owners_session
-    */
-    InduxsoftSession :: &db, &event
-    {
-        calendar_owner = @@(event,"$calendar_owner")
-        if field.exist(@_calendar_owners_session,calendar_owner) {
-            return @@(@_calendar_owners_session,"&"+calendar_owner)
-        }
-
-        ref tuser = dbr.rec(db,"select * from tuser where sys_pk = @calendar_owner",record.copy(event,"calendar_owner"))
-        new payload
-        {
-            @"uid": trim(@@(tuser,"$induxsoft_identifier"))
-            @"secret": trim(@@(tuser,"$induxsoft_token"))
-        }
-        ref resp = dbext.induxsoft.invoke_service(payload)
-
-        exception
-        {
-            do pop_exception()
-            // fallback: asumir misma 'guid' del usuario v12 (tuser) para el perfil induxsoft que se intento recuperar.
-            new resp
-            {
-                @"profile": @@(tuser,"$sys_guid")
-            }
-        }
-        
-        @_calendar_owners_session<calendar_owner+"*"> : resp
-        return resp
-    }
-
     GetChannelSettings :: &db, &event
     {
         ref params = @@(event,"&params")
@@ -290,20 +256,6 @@ program ""
         
         params.channel := @@(snd,"$name")
         params.lib := @@(snd,"$lib")
-
-        // Preferir teléfono; si no tiene, caer a email
-        // params.to := @@(event,"$participant_phone")
-        // if params.to == "" { params.to := @@(event,"$participant_email") }
-
-        /**
-        * Para que el envio de mensaje usando los canales de los Agentes IA funcione...
-        * 1- el propietario del calendario (tuser) debe estar vinculado e un perfil induxsoft.
-        * 2- el perfil induxsoft debe tener acceso al AgenteIA que se configuro en alguno de los canales disponibles.
-        * 3- el AgenteIA configurado debe mantener activa la conexión del canal seleccionado.
-        */
-        // ref ses = InduxsoftSession(db,event)
-        // params.ids := @@(ses,"$induxsoft_sid")
-        // params.uid := @@(ses,"$profile")
 
         return params
     }
