@@ -91,7 +91,7 @@ module ":rest"
         return event
     }
 
-    AddEvent::&db,&params,&payload
+    AddEvent::&db,&params,&payload,&response
     {
         ref calendar = @@(payload,"&calendar")
         ref data = @@(payload,"&data")
@@ -135,7 +135,7 @@ module ":rest"
         do events.validateFields(db,params,data)
         
         ref resp = events.CheckAvailability(db,data)
-        if not(@@(resp,"#success")) { return @@(resp,"$message") }
+        if not(@@(resp,"#success")) { do rise_error(500,@@(resp,"$message")) }
         
         do field.remove(data,"event_id")
         do field.remove(data,"response_type")
@@ -167,11 +167,13 @@ module ":rest"
         event_duration = @@(event,"#duration")
 
         success_message = ftext("Se ha agregado el evento #<event_type_name> (event_id:#<event_id>) al calendario #<calendar_name> (calendar_id:#<calendar_id>) el #<event_start> con una duración prevista de #<event_duration> minutos.")
-        
-        return success_message
+
+        event_type_name, event_id, event_start, event_duration, calendar_name, calendar_id >> result
+        response<"data*"> : result
+        response<"text"> : success_message
     }
 
-    EdtEvent::&db,&params,&payload
+    EdtEvent::&db,&params,&payload,&response
     {
         ref calendar = @@(payload,"&calendar")
         ref event = @@(payload,"&event")
@@ -209,7 +211,7 @@ module ":rest"
         do events.validateFields(db,params,data)
         
         ref resp = events.CheckAvailability(db,data)
-        if not(@@(resp,"#success")) { return @@(resp,"$message") }
+        if not(@@(resp,"#success")) { do rise_error(500,@@(resp,"$message")) }
         
         do field.remove(data,"event_id")
         do field.remove(data,"response_type")
@@ -241,23 +243,32 @@ module ":rest"
         event_duration = @@(event,"#duration")
 
         success_message = ftext("El evento #<event_type_name> (event_id:#<event_id>) ha sido reagendado a #<event_start> en el calendario #<calendar_name> (calendar_id:#<calendar_id>).")
-        
-        return success_message
+
+        event_type_name, event_id, event_start, calendar_name, calendar_id >> result
+        response<"data*"> : result
+        response<"text"> : success_message
     }
 
     SaveEvent::&db,&params,&payload
     {
+        new response { @"success": @true }
+        response_type = "text"
+        response_text = ""
+        is_new = @true
+
+
         valid_fields = "calendar_id,event_id,type,caption,start,duration,important,backcolor,color,detsrc,srcid,tag,data,participants,response_type,suggested_days,only_on_the_hour"
         // Filtrar campos validos de 'params'
         ref fields_in_params = filter_args(params, valid_fields)
         // Filtrar campos validos de 'payload.data'
         ref fields_in_data = filter_args(@@(payload,"&data"), valid_fields)
         // Combinar resultados prefiriendo los valores de 'payload.data'
-        payload<"data*"> : record.copyexin(fields_in_data, fields_in_params, "*", ",", "", ":")
+        ref data = record.copyexin(fields_in_data, fields_in_params, "*", ",", "", ":")
         
+        payload<"data*"> : data
         payload<"_payload"> : to.json(payload)
-        ref data = @@(payload,"&data")
-        is_new = @true
+        
+        response_type = @@(data,"$response_type")
         
         calendar_id = replace(trim(@@(data,"$calendar_id"))," ","")
         if calendar_id == "" { do rise_error(400,"No ha indicado el id del calendario.") }
@@ -305,26 +316,31 @@ module ":rest"
             // 3. Itera en orden intentando registrar el evento en la fecha/hora solicitada.
             calendarios = list.count(calendars)
             if calendarios < 1 { do rise_error(404,"No se encontró datos del calendario.") }
+            created = @false
             for i = 0; i < calendarios
             {
                 payload<"calendar*"> : list.obj(calendars,i)
                 
                 // 4. Si encuentra disponibilidad -> registra y retorna confirmación.
-                response_text = AddEvent(db,params,payload)
+                do AddEvent(db,params,payload,response)
+                response_text = @@(response,"$text")
+                do field.remove(response,"text")
 
                 exception{ response_text = "No fue posible agendar el evento: "+last_error() }
 
                 if contains(response_text,"Se ha agregado el evento") || calendarios == 1 {
-                    return response_text
+                    created = @true
+                    break
                 }
             }
             // 5. Si ninguno tiene disponibilidad -> retorna la lista de slots alternativos del *primer calendario* de la lista ordenada (menor carga)
-            data<"calendar"> : @@(list.obj(calendars,0), "#sys_pk")
+            if not(created)
+            {
+                data<"calendar"> : @@(list.obj(calendars,0), "#sys_pk")
 
-            message = "No se ha podido agendar el evento "+start+" porque el horario elegido no está disponible.\nLas siguientes fechas y horarios están disponibles cerca de esa fecha:\n"
-            message = message + events.GetAvailability(db,data)
-            
-            return message
+                response_text = "No se ha podido agendar el evento "+start+" porque el horario elegido no está disponible.\nLas siguientes fechas y horarios están disponibles cerca de esa fecha:\n"
+                response_text = response_text + events.GetAvailability(db,data)
+            }
         }
         else
         {
@@ -336,17 +352,44 @@ module ":rest"
                 payload<"calendar*"> : calendar
                 do field.remove(data,"calendar_id")
                 
-                return AddEvent(db,params,payload)
+                do AddEvent(db,params,payload,response)
+                response_text = @@(response,"$text")
+                do field.remove(response,"text")
             }
             else
             {
                 ref calendar = dbr.rec(db,"select sys_pk, sys_guid, propietario, nombre from pim_calendar where sys_pk=@calendar",@@(payload,"&event"))
+                
                 payload<"calendar*"> : calendar
                 do field.remove(data,"calendar_id")
 
-                return EdtEvent(db,params,payload)
+                do EdtEvent(db,params,payload,response)
+                response_text = @@(response,"$text")
+                do field.remove(response,"text")
             }
         }
+
+        exception
+        {
+            code = last_error_code()
+            error = last_error()
+            
+            if response_type == "json"
+            {
+                using response
+                {
+                    @"success": @false
+                    @"message": error
+                }
+            }
+            else
+            {
+                response_text = "No fue posible agendar el evento: " + error
+            }
+        }
+
+        if response_type == "json" { return to.json(response) }
+        else { return response_text }
     }
 
     DelEvent::&db,&params,&payload
