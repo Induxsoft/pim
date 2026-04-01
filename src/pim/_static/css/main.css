@@ -2,6 +2,12 @@
 .no-shadow { box-shadow: none !important; }
 .revert-all { all: revert; }
 
+.btn.btn-xs {
+    padding: .20rem .4rem;
+    font-size: .725rem;
+    border-radius: .1rem;
+}
+
 .disabled-all * a:not(.no-disable),
 .disabled-all * input:not(.no-disable),
 .disabled-all * select:not(.no-disable),

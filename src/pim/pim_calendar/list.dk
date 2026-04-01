@@ -68,6 +68,7 @@ module "list.dk"
             {
                 ref item = list.obj(data,i)
                 key = @@(item,@pim_calendar_keyfield)
+                guid = @@(item,"sys_guid")
                 nombre = @@(item,"nombre")
                 username = @@(item,"username")
 
@@ -81,6 +82,14 @@ module "list.dk"
                 {
                     div(class="card")
                     {
+                        div(class="card-header bg-white py-0")
+                        {
+                            div(class="d-flex align-items-center gap-1")
+                            {
+                                small{"#<guid>"}
+                                button(class="btn btn-sm no-shadow" type="button" title="Copiar id del calendario" onclick="tools.copy('#<guid>')"){$"#<@ICON_COPY>"}
+                            }
+                        }
                         a(class="card-body text-center calendario-item" href="#<view_url>" title="")
                         {
                             h5(class="card-title text-dark mb-0"){"#<nombre>"}

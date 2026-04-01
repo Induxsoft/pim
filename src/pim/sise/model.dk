@@ -326,9 +326,12 @@ module ":rest"
                 response_text = @@(response,"$text")
                 do field.remove(response,"text")
 
-                exception{ response_text = "No fue posible agendar el evento: "+last_error() }
+                exception
+                {
+                    if calendarios == 1 { do rise_error(last_error_code(),last_error()) }
+                }
 
-                if contains(response_text,"Se ha agregado el evento") || calendarios == 1 {
+                if contains(response_text,"Se ha agregado el evento") {
                     created = @true
                     break
                 }
@@ -340,6 +343,8 @@ module ":rest"
 
                 response_text = "No se ha podido agendar el evento "+start+" porque el horario elegido no está disponible.\nLas siguientes fechas y horarios están disponibles cerca de esa fecha:\n"
                 response_text = response_text + events.GetAvailability(db,data)
+
+                do rise_error(400,response_text)
             }
         }
         else
