@@ -170,6 +170,7 @@ module ":events"
     //#region CheckAvailability()
     function CheckAvailability(&db,&params)
     {
+        event_id = @@(params,"$event_id")
         calendar = @@(params,"#calendar")
         start = @@(params,"$start")
         duration = @@(params,"#duration")
@@ -184,7 +185,7 @@ module ":events"
             return response
         }
 
-        calendar, start, duration >> p
+        event_id, calendar, start, duration >> p
         
         ref cal = dbr.rec(db,"SELECT start_lab_hour, end_lab_hour, intervalo, breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",p)
 
