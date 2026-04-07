@@ -1,0 +1,18 @@
+#include "dkli.dkh"
+#!
+module "ReportController"
+{
+    switch @@(@http_context,"$request/get/_entity_id")
+    {
+        case "notificaciones-de-eventos"
+        {
+            @form_view = "event.notifications.dk"
+            point @read to pim.report.eventNotifications
+            break
+        }
+        default
+        {
+            point @read to pim.report.NotImplemented
+        }
+    }
+}

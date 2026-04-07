@@ -19,8 +19,9 @@ module "list.dk"
     {
         btn_cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners no-shadow"
         #$
-        a(class="#<btn_cls>" href="#<@pim_calendar_new>" title="Crear calendario"){$"#<@ICON_PLUS_LG>"}
         a(class="#<btn_cls>" href="#<@pim_events_type>" title="Tipos de eventos de calendario"){"Tipos de eventos"}
+        a(class="#<btn_cls>" href="#<@pim_events_notif>" title="Notificaciones de los eventos"){"Notificaciones"}
+        a(class="#<btn_cls>" href="#<@pim_calendar_new>" title="Crear calendario"){$"#<@ICON_PLUS_LG> Crear"}
         #!
     }
     point buttons to printNavButtons
@@ -86,8 +87,8 @@ module "list.dk"
                         {
                             div(class="d-flex align-items-center gap-1")
                             {
-                                small{"#<guid>"}
                                 button(class="btn btn-sm no-shadow" type="button" title="Copiar id del calendario" onclick="tools.copy('#<guid>')"){$"#<@ICON_COPY>"}
+                                small{"#<guid>"}
                             }
                         }
                         a(class="card-body text-center calendario-item" href="#<view_url>" title="")

@@ -1,8 +1,9 @@
 var events = {
+
     form_id:"", form:null, ff:null,
     url_bitacora:"",
     is_new:false,
-    
+
     init()
     {
         this.form = document.getElementById(this.form_id);
@@ -32,6 +33,7 @@ var events = {
         url += "&calendar="+this.ff['calendar'].value;
         url += "&start="+this.ff['start'].value;
         url += "&duration="+this.ff['duration'].value;
+        url += "&event_id="+this.ff['sys_guid'].value;
 
         InduxsoftCrudlModel.InvokeService(url, null,
             (resp) => { document.getElementById(this.form_id+"-warning")?.remove(); },

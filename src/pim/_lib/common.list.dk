@@ -1,0 +1,135 @@
+#include "dkli.dkh"
+#!
+module "Maqueta base de las listas"
+{
+    do @context.begin(@crud_context)
+
+    ref @data = ifnull(@("&./data"),list.create())
+    ref titles = ifnull(@("&./titles"),record.create())
+
+    if not(isset("@container_class")) { @container_class = "container-md" }
+
+    new nav_config
+    {
+        @"title": @title
+        @"actions*": ifnull(@("&./itemactions"),list.create())
+        @"reports*": ifnull(@("&./itemreports"),list.create())
+        @"jscurrentcontext": "getCurrentContext"
+    }
+    if isset("@urlexit") { nav_config<"urlexit"> : @urlexit }
+    if isset("@main") { nav_config<"main"> : @main }
+    if isset("@buttons") { nav_config<"buttons*"> : @buttons }
+
+    #$
+    div(class="#<@container_class> v12-list-view" id="view")
+    {
+        // Filtros y acciones
+        section(class="bg-white" id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+
+            style
+            {$'
+                tr th { font-size:.9rem; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+                tr td { font-size:.8rem; }
+            '}
+
+            form(class="mb-1" method="GET" action="./" id="form-filter")
+            {""
+                #!
+                do printFilters()
+                #$
+            }
+        }
+        // Contenido principal
+        section(id="work_area")
+        {
+            div(class="show-on-print")
+            {
+                p(class="text-center my-0"){$"#<@@(titles,'$title')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle_2')>"}
+
+                div(class="row")
+                {
+                    div(class="col-3 text-start")
+                    {
+                        small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                        small(class="d-block"){ $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                    }
+                    div(class="col-6 text-center")
+                    {
+                        h4(class=""){$"#<@@(nav_config,'$title')>"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        small(class="d-block" id="lbl_filter_1"){$""}
+                        small(class="d-block" id="lbl_filter_2"){$""}
+                        small(class="d-block" id="lbl_filter_3"){$""}
+                    }
+                }
+            }
+
+            #!
+            do printContent()
+            #$
+
+            div(class="show-on-print"){p(class="fixed-bottom text-center my-1"){$"#<@@(titles,'$footer')>"}}
+        }
+        // Resúmenes y datos al pie
+        section(id="bottom_area")
+        {
+            div(id="_custom_area")
+            {
+                script(type="text/javascript")
+                {$'
+                    function fillSelect(id, kf, vf, url, params={}, fo={})
+                    {
+                        const select = document.getElementById(id);
+
+                        let endpoint = InduxsoftCrudlModel.UrlReplace(url,params);
+                        let selected = select.value ?? "";
+
+                        fetch(endpoint).then(response => response.json())
+                        .then(data => {
+                            if (data.message) {
+                                alert(data.message);
+                                return;
+                            }
+                            
+                            select.innerHTML = "";
+
+                            if (Object.keys(fo).length >= 2) data.unshift(fo);
+
+                            data.forEach(obj => {
+                                const option = document.createElement("option");
+                                option.value = obj[kf];
+                                option.text = obj[vf];
+                                if (obj[kf] === selected) option.selected = true;
+
+                                select.appendChild(option);
+                            });
+                        })
+                        .catch(error => console.error(error));
+                    }
+
+                    function getCurrentContext() {
+                        const table = document.getElementById("#<table_id>");
+                        const id = (table?.DataArray[table.CurrentRowIndex()]?.sys_pk ?? "");
+                        return { item_id:id, context: {} }
+                    }
+
+                    function filter(ff) { ff.form.submit(); }
+                '}
+                #!
+                do printJavaScript()
+                #$
+            }
+        }
+    }
+    #!
+
+    do @context.end()
+}

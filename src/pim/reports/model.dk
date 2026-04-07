@@ -1,0 +1,91 @@
+#include "dkli.dkh"
+#!
+module ":pim.report"
+{
+    #include "./list.queries.dk"
+
+
+    prepareDefaultReportData :: &db, &data
+    {
+        using data
+        {
+            member @"titles"
+            {
+                @"title": dbr.vars.getd(db,"FXCA108","")
+                @"subtitle": dbr.vars.getd(db,"FXCA109","")
+                @"subtitle_2": dbr.vars.getd(db,"FXCA110","")
+                @"footer": dbr.vars.getd(db,"FXCA111","")
+            }
+        }
+    }
+
+    prepareView :: &db, &params, &data
+    {
+        sql_events_types = "select sys_pk, nombre from pim_events_type where not ifnull(sys_deleted,0)"
+        sql_channels = "select sys_pk, name from snd_channel where not ifnull(sys_deleted,0)"
+
+        switch @@(params,"$_entity_id")
+        {
+            case "notificaciones-de-eventos"
+            {
+                using data
+                {
+                    @"types*": dbr.list(db,sql_events_types,params)
+                    @"channels*": dbr.list(db,sql_channels,params)
+                }
+                break
+            }
+        }
+
+        do prepareDefaultReportData(db,data)
+    }
+
+    eventNotifications :: &db, &params
+    {
+        // do dbr.apps.action.grant("TF60")
+        
+        using params
+        {
+            @"calendar": @@(params,"#calendar")
+            @"type": @@(params,"#type")
+            @"channel": @@(params,"#channel")
+        }
+        if not(field.exist(params,"fi")) { params<"fi"> : date_str(now(),"yyyy-MM-dd") }
+        if not(field.exist(params,"ff")) { params<"ff"> : date_str(now(),"yyyy-MM-dd") }
+        
+        ref calendars = getUserCalendars(db)
+
+        allow_calendars = "-1,"
+        for i = 0; i < list.count(calendars)
+        {
+            ref cal = list.obj(calendars,i)
+            allow_calendars = allow_calendars + @@(cal,"$sys_pk") + ","
+        }
+        allow_calendars = rremove(allow_calendars,1)
+
+        new data
+        {
+            @"data*": dbr.list(db,ftext(@qry_event_notifications),params)
+            @"calendars*": calendars
+        }
+        do prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    NotImplemented :: &db, &params
+    {
+        do rise_error(501,"No implementado")
+    }
+
+    catch::
+    {
+        do errordet(@false)
+        code = last_error_code()
+        error = last_error()
+
+        if isset("@@_action_context"){ do dbr.apps.action.log() }
+        do rise_error(code,error)
+    }
+}

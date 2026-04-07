@@ -79,6 +79,7 @@ if @@(entity,"$link3") != ""
 form(class="px-1" action="./" method="POST" id="#<@form_id>")
 {
     input(type="hidden" name="sys_pk" value="#<@@(entity,'#sys_pk')>")
+    input(type="hidden" name="sys_guid" value="#<@@(entity,'$sys_guid')>")
     input(type="hidden" name="sys_recver" value="#<@@(entity,'#sys_recver')>")
     input(type="hidden" name="calendar" value="#<@calendar_pk>")
 

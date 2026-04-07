@@ -127,6 +127,40 @@ module "Funciones de propósito general"
         return dbr.str(db,"SELECT usr.sys_guid FROM tuser AS usr LEFT JOIN sys_session AS ss ON usr.sys_pk = ss.iuser WHERE usr.sys_guid = @id OR usr.userid = @id OR ss.sys_guid = @id",params)
     }
 
+    function getUserCalendars(&db)
+    {
+        new params
+        {
+            @"logged_user_pk": GetPkUsr(db,@@(@http_context,"$session/user/uid"))
+            @"logged_user_guid": GetGuidUsr(db,@@(@http_context,"$session/user/uid"))
+        }
+
+        sql = "
+        SELECT DISTINCT
+            c.sys_pk,
+            c.sys_guid,
+            c.propietario,
+            c.nombre,
+            u.userid,
+            u.username
+        FROM pim_calendar c
+            INNER JOIN tuser u ON c.propietario = u.sys_pk
+        WHERE
+            NOT IFNULL(c.sys_deleted,0)
+            AND (
+                -- El usuario logeado es el propietario
+                c.propietario = @logged_user_pk
+                -- El usuario logeado es parte del calendario
+                OR (select sys_pk from pim_calendar_per where calendar = c.sys_pk and guid = @logged_user_guid and not ifnull(es_grupo,0) limit 1) > 0
+                -- El usuario logeado es miembro de algún grupo que es parte del calendario
+                OR (select m.sys_pk from pim_calendar_per m inner join usergroup g on m.guid = g.sys_guid inner join user_usergroup_ ug on g.sys_pk = ug.groups where m.calendar = c.sys_pk and ug.users = @logged_user_pk and ifnull(m.es_grupo,0) limit 1) > 0
+            )
+            AND (@search IS NULL OR c.nombre LIKE CONCAT('%',@search,'%'))
+        "
+
+        return dbr.list(db,sql,params)
+    }
+
 
     createselect::&calendars,value
     {

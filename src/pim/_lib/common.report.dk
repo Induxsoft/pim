@@ -1,0 +1,123 @@
+#include "dkli.dkh"
+#!
+module "Maqueta base de los reportes"
+{
+    do @context.begin(@crud_context)
+
+    ref @data = ifnull(@("&./data"),list.create())
+    ref titles = ifnull(@("&./titles"),record.create())
+
+    if not(isset("@container_class")) { @container_class = "container-md" }
+
+    new nav_config
+    {
+        @"title": @title
+        @"urlexit": "javascript:window.history.back()"
+    }
+
+    #$
+    div(class="#<@container_class> v12-list-view" id="view")
+    {
+        section(class="bg-white" id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+
+            style
+            {$'
+                tr th { font-size:.9rem; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+                tr td { font-size:.8rem; }
+            '}
+
+            form(class="no-print mb-2" method="GET" action="./" id="form-filter")
+            {""
+                #!
+                do printFilters()
+                #$
+            }
+        }
+        
+
+        div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") {
+        div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);")
+        {
+            section(class="bg-white p-1" id="work_area")
+            {
+                p(class="text-center mb-0"){$"#<@@(titles,'$title')>"}
+                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle')>"}
+                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle_2')>"}
+
+                div(class="row")
+                {
+                    div(class="col-3")
+                    {
+                        small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                        small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                    }
+                    div(class="col-6")
+                    {
+                        h5(class="text-center"){$"#<@@(nav_config,'$title')>"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        $""
+                    }
+                }
+                
+                #!
+                do printContent()
+                #$
+
+                p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
+            }
+        }}
+
+        section(id="bottom_area")
+        {
+            div(id="_custom_area")
+            {
+                script(type="text/javascript")
+                {$'
+                    function fillSelect(id, kf, vf, url, params={}, fo={})
+                    {
+                        const select = document.getElementById(id);
+
+                        let endpoint = InduxsoftCrudlModel.UrlReplace(url,params);
+                        let selected = select.value ?? "";
+
+                        fetch(endpoint).then(response => response.json())
+                        .then(data => {
+                            if (data.message) {
+                                alert(data.message);
+                                return;
+                            }
+                            
+                            select.innerHTML = "";
+
+                            if (Object.keys(fo).length >= 2) data.unshift(fo);
+
+                            data.forEach(obj => {
+                                const option = document.createElement("option");
+                                option.value = obj[kf];
+                                option.text = obj[vf];
+                                if (obj[kf] === selected) option.selected = true;
+
+                                select.appendChild(option);
+                            });
+                        })
+                        .catch(error => console.error(error));
+                    }
+
+                    function filter(ff) { ff.form.submit(); }
+                '}
+                #!
+                do printJavaScript()
+                #$
+            }
+        }
+    }
+    #!
+
+    do @context.end()
+}

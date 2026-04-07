@@ -1,0 +1,77 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    @qry_event_notifications = "
+    SELECT
+        e.sys_pk                                    AS event_id,
+        e.sys_guid                                  AS event_guid,
+        e.caption                                   AS event_caption,
+        DATE_FORMAT(e.start,'%d/%m/%Y %h:%i %p')    AS event_start,
+        DATE_FORMAT(e.start,'%d/%m/%Y')             AS event_start_date,
+        DATE_FORMAT(e.start,'%h:%i %p')             AS event_start_time,
+        e.duration                                  AS event_duration,
+        t.nombre                                    AS event_type,
+        
+        c.sys_pk        AS calendar_id,
+        c.nombre        AS calendar_name,
+        c.propietario   AS calendar_owner,
+        
+        p.name          AS participant_name,
+        p.email         AS participant_email,
+        p.phone         AS participant_phone,
+        
+        n.sys_guid AS config_guid,
+        (CASE
+            WHEN n.advance_minutes < 60 THEN CONCAT(n.advance_minutes, ' Minutos')
+            WHEN n.advance_minutes < 1440 THEN CONCAT(FLOOR(n.advance_minutes / 60), ' Horas')
+            ELSE CONCAT(FLOOR(n.advance_minutes / 1440), ' Días')
+        END) AS anticipation,
+        DATE_FORMAT(e.start - INTERVAL n.advance_minutes MINUTE, '%d/%m/%Y %h:%i %p') AS scheduled_for,
+        ch.`name` AS channel_name,
+        
+        l.`status`,
+        DATE_FORMAT(l.sent_at,'%d/%m/%Y %h:%i %p') AS sent_at,
+        l.channel_response,
+        l.error_detail
+    FROM
+        pim_events e
+        JOIN pim_calendar c ON c.sys_pk = e.calendar
+        JOIN pim_events_type t ON t.sys_pk = e.type
+        JOIN pim_event_participant p ON p.event  = e.sys_pk
+        JOIN pim_event_type_notif n ON n.event_type = e.type
+        JOIN snd_channel ch ON n.template = ch.sys_pk
+        LEFT JOIN pim_notif_log l ON l.event_guid = e.sys_guid AND l.config_guid = n.sys_guid AND l.participant_guid = p.sys_guid
+    WHERE
+        NOT IFNULL(e.sys_deleted,0)
+        AND IF(IFNULL(@calendar,-1) < 1, e.calendar IN (#<allow_calendars>), e.calendar = @calendar)
+        AND (IFNULL(@type,-1) < 1 OR e.type = @type)
+        AND (IFNULL(@channel,-1) < 1 OR n.template = @channel)
+        AND (
+            CASE IFNULL(@status,'')
+                WHEN '' THEN TRUE
+                WHEN 'pending' THEN IFNULL(l.`status`,'') IN ('','pending')
+                ELSE l.`status` = @status
+            END
+        )
+        AND (
+            CASE
+                WHEN @fi != '' && @ff != '' THEN (DATE(e.`start`) BETWEEN DATE(@fi) AND DATE(@ff))
+                WHEN @fi != '' && @ff = '' THEN (DATE(e.`start`) >= DATE(@fi))
+                WHEN @fi = '' && @ff != '' THEN (DATE(e.`start`) <= DATE(@ff))
+                ELSE TRUE
+            END
+        )
+        AND (
+            IFNULL(@search,'') = ''
+            OR p.name LIKE CONCAT('%', @search, '%')
+            OR p.email LIKE CONCAT('%', @search, '%')
+            OR p.phone LIKE CONCAT('%', @search, '%')
+        )
+        AND n.enabled = TRUE
+    ORDER BY
+        e.`start`,
+        l.sent_at
+    ;
+    "
+}

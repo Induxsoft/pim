@@ -41,6 +41,7 @@ module "Variables globales"
 	@pim_events_edt = "/!/pim/events/@_entity_id/"
 	@pim_events_del = @pim_events_edt
 	@pim_events_log = "/!/webshell/log/DET099/@guid/"
+	@pim_events_notif = "/!/pim/reports/notificaciones-de-eventos/"
 
 	@pim_members_new = "/!/pim/members/_new/"
 	@pim_members_edt = "/!/pim/members/@_entity_id/"
