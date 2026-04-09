@@ -66,7 +66,7 @@ module "Notificaciones de eventos"
 
         new status_select
         {
-            @"id": "status_filter"
+            @"id": "status"
             @"value_field": "id"
             @"text_field": "const"
             @"datatable*": from.json('[
@@ -164,7 +164,7 @@ module "Notificaciones de eventos"
                 }
             }
             tbody
-            {
+            {""
                 #!
                 for i = 0; i < list.count(@data)
                 {
