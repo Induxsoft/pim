@@ -316,10 +316,13 @@ module ":rest"
             // 3. Itera en orden intentando registrar el evento en la fecha/hora solicitada.
             calendarios = list.count(calendars)
             if calendarios < 1 { do rise_error(404,"No se encontró datos del calendario.") }
+            // Se respalda el tipo de evento (nombre/sys_guid) debido a que AddEvent lo reemplaza por su sys_pk
+            event_type_backup = @@(data,"$type")
             created = @false
             for i = 0; i < calendarios
             {
                 payload<"calendar*"> : list.obj(calendars,i)
+                payload<"data/type"> : event_type_backup
                 
                 // 4. Si encuentra disponibilidad -> registra y retorna confirmación.
                 do AddEvent(db,params,payload,response)
