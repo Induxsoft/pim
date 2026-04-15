@@ -462,6 +462,17 @@ module ":events"
             if @@(data,"$backcolor") == "" { data<"backcolor"> : @@(event_type,"$backcolor") }
             if @@(data,"$color") == "" { data<"color"> : @@(event_type,"$color") }
         }
+        else
+        {
+            new p
+            {
+                @"event_id": @@(params,"$_entity_id")
+                @"start": @@(data,"$start")
+            }
+            sql = "select (@start <> '' and timestamp(@start) <> start) from #<@table_name> where #<@keyfield> = @event_id"
+            reschedule = dbr.num(db,ftext(sql),p)
+            if not(reschedule){ do field.remove(data,"start") }
+        }
         if field.exist(data,"important"){ data<"important"> : parse.bool(@@(data,"$important")) }
         if field.exist(data,"status") && @@(data,"#status") > 0
         {

@@ -7,6 +7,7 @@ program "Controlador de eventos"
     #include "webcl.dkh"
     #include "dbr.dkh"
     #include "dbr.vars.dkl"
+    #include "dbr.notif.dkl"
     #include "pim/_lib/config.dk"
     #include "pim/_lib/lib.dk"
     #include "pim/_events/pim_events/lib.dk"
@@ -17,6 +18,8 @@ program "Controlador de eventos"
     ref params = @("&eventdata/parameters")
     ref input = @("&eventdata/input")
     ref output = @("&eventdata/output")
+    
+    @source = @@(params,"$_pack")
     @apikey = dbr.vars.get(db,"pim_calendar_sync_apikey")
     @secret = dbr.vars.get(db,"pim_calendar_sync_apisecret")
     // do file.wtext("C:/Devkron/_tests/logs/event_context."+@("$event")+".json",to.json(@event_context))
@@ -55,6 +58,12 @@ program "Controlador de eventos"
             }
             break
         }
+        case "ext_TF21"
+        {
+            // Notificar nuevo evento
+            do event.notify(db,input,output)
+            break
+        }
         //#region update-event
         case "pre_TF22"
         {
@@ -76,6 +85,12 @@ program "Controlador de eventos"
                 @"event_id": @@(evt,"$external_id")
             }
             do requestNylas("PUT",query,output)
+            break
+        }
+        case "ext_TF22"
+        {
+            // Notificicar evento modificado
+            do event.notify(db,input,output)
             break
         }
         //#region delete-event

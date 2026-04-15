@@ -205,10 +205,15 @@ module ":rest"
             @"calendar": calendar_pk
         }
         @http_context<"session/user/uid"> : calendar_owner_id
+        start_backup = @@(data,"$start")
 
         // validar acciones de usuario y campos
         do events.validateEventAction(db,calendar_pk)
         do events.validateFields(db,params,data)
+
+        // Cuando no se esta reagendando, 'validateFields' remueve el campo 'start'
+        reschedule = field.exist(data,"start")
+        if not(reschedule) { data<"start"> : start_backup }
         
         ref resp = events.CheckAvailability(db,data)
         if not(@@(resp,"#success")) { do rise_error(500,@@(resp,"$message")) }
@@ -226,7 +231,7 @@ module ":rest"
         do dbr.update(db,"pim_events",data,"sys_pk=@sys_pk",event)
         ref event:GetEvent(db,@@(event,"$sys_guid"))
 
-        participants >> event
+        participants, reschedule >> event
         do participants.save(db,event)
 
         do dbr.apps.action.pos(event)

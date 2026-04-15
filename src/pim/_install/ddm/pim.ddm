@@ -95,6 +95,16 @@ model "pim"
         @"detsrc" string(15) // Identificador del tipo de elemento de datos o proceso donde se generó el evento
         @"srcid" int // Identificador correspondiente a la instancia del tipo de elemento de datos que originó el evento
         @"tag" string(32) // Cadena con información de propósito general
+
+        index "pim_event_detid"
+        {
+            field "detsrc"
+            field "srcid"
+        }
+        index "pim_event_extid"
+        {
+            field "external_id"
+        }
     }
 
     entity "pim_calendar_per" : "TableModel"

@@ -128,7 +128,27 @@
                 "vardefault": "",
                 "varvalue": "1",
                 "varcaption": "Habilitar notificación de evento",
-                "varhelp": "Habilitar notificación de evento.",
+                "varhelp": "",
+                "vartype": "bool",
+                "varinput": {
+                    "control": "select",
+                    "source": {
+                        "type":"list",
+                        "keyfield":"id",
+                        "showfield":"const",
+                        "values":[
+                            { "id":"1", "const":"Sí" },
+                            { "id":"0", "const":"No" }
+                        ]
+                    }
+                }
+            },
+            {
+                "varname": "pim_calendar_notify_members",
+                "vardefault": "",
+                "varvalue": "1",
+                "varcaption": "Notificar a miembros del calendario",
+                "varhelp": "",
                 "vartype": "bool",
                 "varinput": {
                     "control": "select",

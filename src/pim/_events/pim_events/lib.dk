@@ -58,4 +58,126 @@ module ""
         }
         do requestNylas("POST",params,input)
     }
+
+    //#region Notificar evento
+
+    function list.add.items(&list,&items)
+    {
+        for i = 0; i < list.count(items)
+        {
+            do list.add(list,list.obj(items,i))
+        }
+    }
+
+    function getCalendarMembers(&db,calendar)
+    {
+        new p { @"calendar": calendar }
+        ref to = list.create()
+
+        ref owner = dbr.rec(db,"SELECT propietario AS user FROM pim_calendar WHERE sys_pk = @calendar",p)
+        do list.add(to,owner)
+
+        if parse.bool(dbr.vars.get(db,"pim_calendar_notify_members"))
+        {
+            sql = "SELECT u.sys_pk AS `user` FROM pim_calendar_per m INNER JOIN tuser u ON m.guid = u.sys_guid WHERE m.calendar = @calendar AND NOT m.es_grupo"
+            ref users = dbr.list(db,sql,p)
+            do list.add.items(to,users)
+
+            sql = "SELECT g.sys_pk AS `group` FROM pim_calendar_per m INNER JOIN usergroup g ON m.guid = g.sys_guid WHERE m.calendar = @calendar AND m.es_grupo"
+            ref groups = dbr.list(db,sql,p)
+            do list.add.items(to,groups)
+        }
+
+        return to
+    }
+
+    function getEventNotifBody(&db,event)
+    {
+        new p { @"event": event }
+        ref ev = dbr.rec(db,ftext("
+        SELECT
+            c.nombre AS calendar_name,
+            t.nombre AS type_name,
+            CONCAT(
+                DATE_FORMAT(e.start,'{dia}, %d de {mes} %h:%i %p'),
+                ' - ',
+                DATE_FORMAT(DATE_ADD(e.start,INTERVAL e.duration MINUTE),'%h:%i %p')
+            ) AS start_range,
+            DAYOFWEEK(e.start) AS dia,
+            MONTH(e.start) AS mes
+        FROM pim_events e
+            INNER JOIN pim_events_type t ON e.type = t.sys_pk
+            INNER JOIN pim_calendar c ON e.calendar = c.sys_pk
+        WHERE e.#<@pim_events_keyfield> = @event
+        "),p)
+
+        ref dias = from.json('["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]')
+        ref meses = from.json('["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]')
+
+        start_range = @@(ev,"$start_range")
+        start_range = replace(start_range,"{dia}",list.str(dias,@@(ev,"#dia")-1))
+        start_range = replace(start_range,"{mes}",list.str(meses,@@(ev,"#mes")-1))
+
+        body = "Calendario: "+@@(ev,"$calendar_name")
+        body = body + "\nTipo: "+@@(ev,"$type_name")
+        body = body + "\n"+start_range
+
+        return body
+    }
+
+    function notif.send(&db,event,title)
+    {
+        new p { @"event": event }
+        calendar = dbr.num(db,ftext("SELECT calendar FROM pim_events WHERE #<@pim_events_keyfield> = @event"),p)
+
+        new notif
+        {
+            @"sender": "pim"
+            @"title": title
+            @"body": getEventNotifBody(db,event)
+            // @"img": @img_pim_events
+            @"href": "/?go=" + url_encode(replace(@pim_events_edt, "@_entity_id", event))
+            @"target": "_self"
+            @"to*": getCalendarMembers(db,calendar)
+        }
+        
+        ref res = dbr.notif.send(db,notif)
+        return res
+    }
+
+    function event.notify(&db,&payload,&output)
+    {
+        if not(parse.bool(dbr.vars.get(db,"pim_events_enable_notification"))) { return }
+
+        ref input = if(@source == "pim", payload, @@(payload,"&data"))
+        event_id = @@(output,@pim_events_keyfield)
+
+        if @@(output,"#sys_recver") == 0
+        {
+            do notif.send(db,event_id,"Nuevo evento!")
+            return
+        }
+
+        if field.exist(input,"status")
+        {
+            new titles
+            {
+                @"0": "Estado del evento revertido"
+                @"1": "Evento completado!"
+                @"99": "Evento cancelado!"
+            }
+            notif_title = @@(titles,"$"+@@(input,"$status"))
+
+            do notif.send(db,event_id,notif_title)
+            return
+        }
+
+        reschedule = if(@source == "pim", field.exist(input,"start"), @@(output,"#reschedule"))
+        if reschedule
+        {
+            do notif.send(db,event_id,"Evento reagendado!")
+            return
+        }
+    }
+    //#endregion
 }
