@@ -65,7 +65,7 @@ module "form.dk"
                 }
             }
             #$
-            form(class="px-1" action="./" method="POST" id="#<@form_id>")
+            form(class="mb-3 px-1" action="./" method="POST" id="#<@form_id>")
             {
                 input(type="hidden" name="sys_pk" value="#<@('#./sys_pk')>")
                 input(type="hidden" name="sys_recver" value="#<@('#./sys_recver')>")
@@ -168,7 +168,16 @@ module "form.dk"
                         }
                     }
                 }
-            }            
+            }
+
+            #!
+            if not(@is_new)
+            {
+                url_self_notif = ftext("/!/pim/events-type/#<@_entity_id>/notif/")
+                #$
+                a(href="#<url_self_notif>"){"Configurar notificaciones propias"}
+            }
+            #$
         }
         // Resúmenes y datos al pie
         section(id="bottom_area")

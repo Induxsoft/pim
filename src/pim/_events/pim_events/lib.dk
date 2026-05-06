@@ -128,13 +128,15 @@ module ""
     function notif.send(&db,event,title)
     {
         new p { @"event": event }
+        
         calendar = dbr.num(db,ftext("SELECT calendar FROM pim_events WHERE #<@pim_events_keyfield> = @event"),p)
+        body = getEventNotifBody(db,event)
 
         new notif
         {
             @"sender": "pim"
             @"title": title
-            @"body": getEventNotifBody(db,event)
+            @"body": body
             // @"img": @img_pim_events
             @"href": "/?go=" + url_encode(replace(@pim_events_edt, "@_entity_id", event))
             @"target": "_self"
@@ -142,6 +144,17 @@ module ""
         }
         
         ref res = dbr.notif.send(db,notif)
+        codeblock "Notificar a otros destinarios"
+        {
+            new context
+            {
+                @"qname": dbr.full_qname(db)
+                @"event": event
+                @"title": title
+                @"content": body
+            }
+            do async.runscript("pim/_events/pim_events/notify.others.dkl", "notif_context", context)
+        }
         return res
     }
 

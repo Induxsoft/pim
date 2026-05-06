@@ -12,6 +12,10 @@ program "Controlador de eventos"
     #include "pim/_lib/lib.dk"
     #include "pim/_events/pim_events/lib.dk"
 
+    ref @lib_async = _import_library("dkl.async.dll")
+    do _map_function(@lib_async, "dkl.async.Tasks", "AsyncRunScript", "async.runscript","System.String, System.String, *System.Object","*")
+    do _map_function(@lib_async, "dkl.async.Tasks", "Wait", "async.wait","*System.Object, System.Int32","void")
+
     do @context.begin(@event_context)
 
     ref db = @("&database")

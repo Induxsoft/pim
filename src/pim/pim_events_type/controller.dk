@@ -1,0 +1,26 @@
+#include "dkli.dkh"
+#!
+module "EventTypeController"
+{
+    switch @@(params,"$_view")
+    {
+        case "notif"
+        {
+            @form_view = "notif.dk"
+
+            point @read to EventType.Notif.Read
+            point @update to EventType.Notif.Update
+            break
+        }
+        default
+        {
+            point @list to EventType.list
+            point @read to EventType.read
+            point @blank to EventType.blank
+            point @create to EventType.create
+            point @update to EventType.update
+            point @delete to EventType.delete
+            break
+        }
+    }
+}

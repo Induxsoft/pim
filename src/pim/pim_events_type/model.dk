@@ -1,6 +1,6 @@
 #include "dkli.dkh"
 #!
-module ""
+module ":EventType"
 {
     @table_name = "pim_events_type" // params._entities_type
     @keyfield = @pim_evtype_keyfield // params._key
@@ -19,6 +19,31 @@ module ""
     LIMIT #<@default_max_rows>
     "
     @read_query = "SELECT * FROM #<@table_name> WHERE #<@keyfield> = @_entity_id LIMIT 1"
+
+
+    function Notif.prepareView(&db,&params,&data)
+    {
+        ref snd_channel = dbr.list(db,"select sys_pk, name from snd_channel where not ifnull(sys_deleted,0)",@null)
+        do list.ins(snd_channel,0,from.json('{ "sys_pk":"", "name":"Seleccione..." }'))
+
+        using data
+        {
+            @"snd_channel*": snd_channel
+        }
+
+        template = @@(params,"#template")
+        if template < 1 { template = @@(data,"#template") }
+        if template > 0
+        {
+            template >> params
+
+            json = dbr.str(db,"select if(ifnull(p.manifest,'')='', '{}', p.manifest) from snd_channel c inner join snd_provider p on c.prov = p.sys_pk where c.sys_pk = @template",params)
+            
+            ref manifest = from.json(json)
+
+            data<"template_controls*"> : @@(manifest,"&template")
+        }
+    }
 
     //#region validateFields()
     function validateFields(&data)
@@ -61,6 +86,28 @@ module ""
         exception{ do catch(db,params,@null) }
     }
 
+    function Notif.Read(&db,&params)
+    {
+        ref entity = EventType.read(db,params)
+        
+        notif = @@(entity,"$notif_conf")
+        if notif == "" { notif = "{}" }
+        ref data = from.json(notif)
+
+        if not(isset("@just_read_entity")) { @just_read_entity = @false }
+        if @just_read_entity { return data }
+
+        if field.exist(params,"template") { data.template := @@(params,"#template") }
+        if field.exist(params,"enabled") { data.enabled := @@(params,"$enabled") }
+        if field.exist(params,"recipients") { data.recipients := @@(params,"$recipients") }
+
+        do EventType.Notif.prepareView(db,params,data)
+
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
     //#region blank()
     function blank(&db,&params)
     {
@@ -92,6 +139,37 @@ module ""
         do validateFields(data)
         ref entity = entity.update(db,params,data)
         return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    function Notif.Update(&db,&params,&data)
+    {
+        // @use_transaction = @false
+        @just_read_entity = @true
+        do dbr.apps.action.grant("TF42")
+
+        template = @@(data,"#template")
+        enabled = parse.bool(@@(data,"$enabled"))
+        recipients = trim(@@(data,"$recipients"))
+
+        if template < 1 { do rise_error(511,"Canal es requerido") }
+        if recipients == "" { do rise_error(512."Destinatarios es requerido") }
+        
+        template, enabled, recipients >> data
+
+        if field.typeof(data,"params") == 1 { data<"params*"> : from.json(@@(data,"$params")) }
+        // if field.typeof(data,"tempvars") == 1 { data<"tempvars*"> : from.json(@@(data,"$tempvars")) }
+
+        new upfields
+        {
+            @"sys_timestamp*": dbr.sql("now()")
+            @"notif_conf": to.json(data)
+        }
+        do dbr.update(db,@table_name,upfields,ftext("#<@keyfield> = @_entity_id"),params)
+
+        ref conf = Notif.Read(db,params)
+        return conf
 
         exception{ do catch(db,params,data) }
     }
@@ -159,11 +237,4 @@ module ""
         do clear_exceptions()
         do rise_error(code,error)
     }
-
-    point @list to list
-    point @read to read
-    point @blank to blank
-    point @create to create
-    point @update to update
-    point @delete to delete
 }

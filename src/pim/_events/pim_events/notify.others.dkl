@@ -1,0 +1,107 @@
+#include "dkli.dkh"
+#!
+program ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "webcl.dkh"
+    #include "v12.com.dkl"
+    #include "pim/_lib/config.dk"
+
+    if not(isset("@notif_context")) { return }
+    do @context.begin(@notif_context)
+    do errordet(@true)
+
+    function ResolveMarksInParams(&params,&context)
+    {
+        ref keys = list.create_from_fields(params)
+        ref marks = list.create_from_fields(context)
+        
+        count_marks = list.count(marks)
+        for i = 0; i < list.count(keys)
+        {
+            key = list.str(keys,i)
+            val = @@(params,"$"+key)
+
+            if contains(val,"{{") {
+                for n = 0; n < count_marks
+                {
+                    mark = list.str(marks,n)
+                    val = replace(val, "{{"+mark+"}}", @@(context,"$"+mark))
+                }
+                params<key> : val
+            }
+        }
+
+        return params
+    }
+
+    //#region MAIN
+    ref db = dbr.open(@("$qname"))
+
+    json = dbr.str(db,ftext("
+    SELECT t.notif_conf
+    FROM
+        pim_events e
+        INNER JOIN pim_events_type t ON e.type = t.sys_pk
+    WHERE e.#<@pim_events_keyfield> = @event
+    "),@notif_context)
+    
+    if json == "" { json = "{}" }
+    ref conf = from.json(json)
+
+    if not(parse.bool(@@(conf,"$enabled"))) {
+        do dbr.close(db)
+        return
+    }
+
+    recipients = @@(conf,"$recipients")
+    ref params = @@(conf,"&params")
+
+    new context
+    {
+        @"title": @("$title")
+        @"content": @("$content")
+    }
+    do ResolveMarksInParams(params,context)
+
+    sql = "SELECT c.name, p.lib FROM snd_channel c INNER JOIN snd_provider p ON c.prov = p.sys_pk WHERE c.sys_pk = @template"
+    ref snd = dbr.rec(db,sql,record.copy(conf,"template"))
+    
+    params.channel := @@(snd,"$name")
+    
+    include @@(snd,"$lib")
+
+    ref recipients_list = split(recipients,",")
+    for i = 0; i < list.count(recipients_list)
+    {
+        params_json = replace(to.json(params), "{{receiver}}", trim(list.str(recipients_list,i)))
+
+        ref message = from.json(params_json)
+        ref response = v12.com.sendMessageV2(db,message,context)
+
+        // do file.wtext("C:/Devkron/_tests/logs/notify.others.response.json",to.json(response))
+        exception
+        {
+            // do file.wtext("C:/Devkron/_tests/logs/notify.others.error.txt",last_error())
+            do clear_exceptions()
+        }
+    }
+    //#endregion
+
+    do @context.end()
+
+    // do file.wtext("C:/Devkron/_tests/logs/notify.others.context.json",to.json(@notif_context))
+    // exception
+    // {
+    //     do file.wtext("C:/Devkron/_tests/logs/notify.others.exception.txt",last_error())
+    // }
+
+    if isset("db")
+    {
+        if not(isnull(db)) {
+            if dbr.is_open(db) { do dbr.close(db) }
+        }
+    }
+}

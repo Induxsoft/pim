@@ -1,0 +1,223 @@
+#include "dkli.dkh"
+#!
+module "form.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "uielements.v12.dkl"
+    #include "dbr.controls.dkl"
+    #include "../_lib/config.dk"
+    // #include "../_lib/lib.dk"
+	// #include "../_lib/icons.dk"
+
+    do @context.begin(@crud_context)
+
+	@_entities_type = @("$parameters/_entities_type")
+	@_entity_id = @("$parameters/_entity_id")
+	@is_new = (@_entity_id == "_new")
+    @form_id = @_entities_type
+    url_exit = replace(@pim_events_type_edt,"@_entity_id",@_entity_id)
+
+    function printNavButtons()
+    {
+        cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners no-shadow"
+        #$
+        button(class="#<cls>" type="submit" form="#<@form_id>" title="Guardar"){$"Guardar"}
+        #!
+    }
+    point buttons to printNavButtons
+    new nav_config
+    {
+        @"title": "Configurar notificación del evento"
+        @"urlexit": url_exit
+        @"buttons*": buttons
+        
+        member @"hidden"
+        {
+            @"send": @true
+            @"copy": @true
+            @"csv": @true
+            @"print": @true
+        }
+    }
+
+    new snd_channel
+    {
+        @"id": "snd_channel"
+        @"text_field": "name"
+        @"value_field": "sys_pk"
+        @"datatable*": ifnull(@("&./snd_channel"), list.create())
+        @"selected": @("./template")
+        member "attributes"
+        {
+            @"class": "form-select"
+            @"name": "template"
+            @"required": ""
+        }
+        member "attr_options"
+        {
+            @"#<ifstr(@@(row,'$sys_pk')=='', 'disabled', '')>": ""
+        }
+    }
+
+    new tempvars
+    {
+        @"receiver": "{{receiver}} - Receptor (correo / teléfono) del destinatario"
+        @"content": "{{content}} - Descripción del evento"
+    }
+
+    ref ch_params_def = ifnull(@("&./template_controls"), record.create())
+    ref @control_params = ifnull(@("&./params"),record.create())
+    
+    // Encapsula a la vista en su totalidad, todo lo que hay antes o después no se considera 
+    #$
+    div(class="container-lg" id="view")
+    {
+        // Filtros y acciones
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+        // Contenido principal
+        section(id="work_area" style="overflow-y:auto; overflow-x:hidden;")
+        {
+            link(href="#<@css_main>" rel="stylesheet")
+            #!
+            error = @("$error/message")
+            if error != ""
+            {
+                #$
+                div(class="alert alert-danger alert-dismissible fade show mb-2 pb-1" role="alert")
+                {
+                    div(class="w-100 overflow-auto pb-2"){$"#<error>"}
+                    button(type="button" class="btn-close" "data-bs-dismiss"="alert" "aria-label"="Close"){""}
+                }
+            }
+            #$
+            form(class="mb-3 px-1" action="./" method="POST" id="#<@form_id>")
+            {
+                // input(type="hidden" name="sys_pk" value="#<@('#./sys_pk')>")
+                // input(type="hidden" name="sys_recver" value="#<@('#./sys_recver')>")
+
+                div(class="row gx-1 gx-sm-2 gx-md-3 gx-lg-4")
+                {
+                    div(class="col-12 col-sm-4 col-md-3")
+                    {
+                        label(class="form-label" "for"="snd_channel"){"Canal"}
+                        ##
+                        do uie.dbSelect(snd_channel)
+                        ##
+                    }
+                    div(class="col-auto align-self-end pt-2")
+                    {
+                        #!
+                        checked = ifstr(parse.bool(@("$./enabled")) || not(field.exist(@("&."),"enabled")), "checked", "")
+                        #$
+                        div(class="form-check")
+                        {
+                            input(class="form-check-input" type="checkbox" name="enabled" id="enabled" "#<checked>"="")
+                            label(class="form-check-label" "for"="enabled"){"Activo"}
+                        }
+                    }
+                    div(class="col-12")
+                    {
+                        label(class="form-label" "for"="recipients"){"Destinatarios:"}
+                        input(class="form-control" type="text" name="recipients" value="#<@('$./recipients')>" id="recipients" placeholder="Ej: correo@dominio, ... ó +5211234567890, ..." required="")
+                        small(class="text-muted"){"Destinatarios (correos / teléfonos) de acuerdo al canal delimitados por coma"}
+                    }
+                }
+
+                // input(type="hidden" name="tempvars" value='#<@("$./tempvars")>')
+            }
+
+            form(class="" id="form-params")
+            {
+                fieldset
+                {
+                    legend{"Parámetros del canal seleccionado"}
+
+                    div(class="mb-2")
+                    {
+                        span(class="d-block"){"Utilice las siguientes variables para hacer referencia a valores dinámicos."}
+                        small(class="d-block")
+                        {
+                            code{"{{receiver}}"}
+                            " - Receptor (correo / teléfono) del destinatario"
+                        }
+                        small(class="d-block")
+                        {
+                            code{"{{title}}"}
+                            " - Título de la notificación"
+                        }
+                        small(class="d-block")
+                        {
+                            code{"{{content}}"}
+                            " - Descripción del evento"
+                        }
+                    }
+
+                    div(class="row")
+                    {""
+                        #!
+                        do dbr.control.GenerateHtml(@("&database"), ch_params_def)
+                        #$
+                    }
+                }
+            }
+
+            // div(class="d-flex align-items-center flex-wrap border gap-1 px-2 py-0 mt-3")
+            // {
+            //     small(class="text-muted"){"Variables posicionales: indique en orden las variables dinámicas a ocupar"}
+            //     // small(class="text-muted"){ " Nueva fila " kbd{$"&DownArrow;"} " Eliminar fila " kbd{$"Ctrl"} " + " kbd{$"Supr"} }
+            //     div(class="flex-grow-1 text-end")
+            //     {
+            //         small(class="text-muted"){$"|"}
+
+            //         button(class="btn btn-sm rounded-0" type="button" id="btn-add-var"){"+ Agregar"}
+            //         button(class="btn btn-sm rounded-0" type="button" id="btn-del-var"){"- Quitar"}
+            //     }
+            // }
+            // "edit-table"(id="table-vars" "auto-confirm"="true" style="width:100%;"
+            // "row-height"="1.2rem"
+            // "control-styles"="
+            //     tr th { font-size:.9rem; outline:none !important; font-weight:500 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+            //     tr td { font-size:.8rem; }
+            //     #__table_input { font-size:unset !important; }
+            // ")
+            // {
+            //     "edit-thead"
+            //     {
+            //         "edit-tr"
+            //         {
+            //             "edit-th"(type="Select" field="varhelp" keyfield="varname" options='#<to.json(tempvars)>'){"Variable"}
+            //         }
+            //     }
+            // }
+        }
+        // Resúmenes y datos al pie
+        section(id="bottom_area")
+        {
+            //////////////////////////////////////////////////////////////////
+            div(id="_custom_area")
+            {
+                script(src="/$/pim/js/pim_event_type.js"){""}
+                script(type="text/javascript")
+                {$'
+                    document.addEventListener("DOMContentLoaded", () => {
+                        event_type.notif.form_id = "#<@form_id>";
+                        event_type.notif.urlexit = "#<url_exit>";
+                        event_type.notif.init();
+                        // Script injection
+                        #<@@(@crud_context,"$script")>
+                    });
+                '}
+            }
+        }
+    }
+    #!
+    
+    do @context.end()
+}

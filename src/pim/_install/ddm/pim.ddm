@@ -137,6 +137,7 @@ model "pim"
         @"link3" string(512)
         @"link3_text" string(15)
         @"link3_target_blank" bool
+        @"notif_conf" memo //Configuración de notificaciones a destinatarios ajenos a los participantes
     }
 
     entity "pim_nylas_connection" : "TableModel"
