@@ -20,6 +20,7 @@ var event_type_notif = {
         });
 
         this.initTableVars();
+        this.initSuggestMarks();
     },
 
     initTableVars()
@@ -43,6 +44,51 @@ var event_type_notif = {
         table.Events['fieldupdated'] = function(e) {
             input.value = JSON.stringify(e.sender.DataArray);
         }
+    },
+
+    initSuggestMarks()
+    {
+        macros.vars = {
+            event_id: {
+                label: "Identificador numérico del evento"
+            },
+            event_type: {
+                label: "Nombre del tipo de evento"
+            },
+            event_caption: {
+                label: "Descripción del evento"
+            },
+            event_start: {
+                label: "Fecha y hora de inicio completa"
+            },
+            event_start_date: {
+                label: "Solo la fecha"
+            },
+            event_start_time: {
+                label: "Solo la hora"
+            },
+            event_duration: {
+                label: "Duración en minutos",
+            },
+
+            calendar_id: {
+                label: "Identificador numérico del calendario",
+            },
+            calendar_name: {
+                label: "Nombre del calendario"
+            },
+
+            participant_name: {
+                label: "Nombre del participante",
+            },
+            participant_email: {
+                label: "Correo del participante",
+            },
+            participant_phone: {
+                label: "Teléfono del participante"
+            }
+        };
+        macros.suggest("#form-params");
     },
 
     formObj(formOrId) {

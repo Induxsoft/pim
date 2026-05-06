@@ -175,7 +175,7 @@ module "form.dk"
             {
                 url_self_notif = ftext("/!/pim/events-type/#<@_entity_id>/notif/")
                 #$
-                a(href="#<url_self_notif>"){"Configurar notificaciones propias"}
+                a(href="#<url_self_notif>"){"Configurar notificaciones externas sobre el estado de un evento."}
             }
             #$
         }
