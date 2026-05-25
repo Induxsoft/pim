@@ -1,0 +1,113 @@
+#include "dkli.dkh"
+#!
+module "Utilidades para los servicios SISE"
+{
+    _db ::
+    {
+        return @@(@http_context,"&session/idp/database")
+    }
+
+    _params ::
+    {
+        return ifnull(@@(@http_context,"&request/get"), record.create())
+    }
+
+    _payload ::
+    {
+        ref post = ifnull(@@(@http_context,"&request/post"), record.create())
+
+        if list.count(list.create_from_fields(post)) < 1 {
+            post_string = field.dstr(@http_context,"request/POST_STRING","{}")
+            if post_string == "" { post_string = "{}" }
+            
+            ref post:from.json(post_string)
+        }
+
+        return post
+    }
+
+    set_response :: type, text
+    {
+        @http_context<"request/headers/http_accept"> : type
+
+        // Establecer encabezado de respuesta http
+        @http_context<"response/headers/Content-Type"> : type
+        // Indicar tipo de respuesta
+        @http_context<"response/output"> : "text"
+        // Asignar la respuesa de salida
+        @http_context<"response/text"> : text  
+    }
+
+    build_response :: is_json, &response
+    {
+        if is_json
+        {
+            if @@(response,"#success")
+            {
+                do field.remove(response,"message")
+                return to.json(response)
+            }
+            else
+            {
+                do field.remove(response,"data")
+                return to.json(response)
+            }
+        }
+
+        // Texto plano
+        return @@(response, "$message")
+    }
+
+    filter_args :: &record, fields
+    {
+        if isnull(record) { return record.create() }
+
+        ref cleaned = record.copy(record,fields)
+        ref keys = list.create_from_fields(cleaned)
+        for i = 0; i < list.count(keys)
+        {
+            key = list.str(keys,i)
+            if isnull(@@(cleaned,"&"+key)) {
+                do field.remove(cleaned,key)
+            }
+        }
+        return cleaned
+    }
+
+    date_format :: dtm, fmt
+    {
+        if dtm == "" { return "" }
+        if fmt == "" { fmt = "yyyy-MM-dd HH:mm:ss" }
+
+        fecha = date_str(str2dt(dtm),fmt)
+        return fecha
+
+        exception
+        {
+            do pop_exception()
+            return ""
+        }
+    }
+
+    sise_base_service ::
+    {
+        expose params, payload, response
+
+        new response { @"success": @true }
+        ref payload = _payload()
+        // Combinar parámetros de url con los parámetros de la carga útil
+        ref payload_params = ifnull(@@(payload,"&params"),record.create())
+        ref params = record.copyex(_params(), payload_params, "*", ",", "", ":")
+
+        @http_context<"request/get*"> : params
+        if isnull(@@(@http_context,"&session/user")) { @http_context<"session/user*"> : record.create() }
+
+        that
+
+        type = ifstr(contains(@@(params,"$response_type"),"json"), "application/json", "text/plain")
+        is_json = contains(type, "json")
+
+        result = build_response(is_json, response)
+        do set_response(type,result)
+    }
+}

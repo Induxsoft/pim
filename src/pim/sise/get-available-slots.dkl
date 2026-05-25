@@ -1,0 +1,199 @@
+#include "dkli.dkh"
+#!
+program "Consulta espacios disponibles de calendarios"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "lib.sise.dk"
+    #include "pim/_lib/lib.dk"
+
+
+    function GetAvailableSlots(&db,&params,&data)
+    {
+        // -- Parámetros de entrada
+        is_json = parse.bool(@@(data,"$only_json")) || contains(@@(data,"$response_type"),"json")
+        params<"response_type"> : ifstr(is_json, "json", "text")
+
+        calendar_id = trim(@@(data,"$calendar_id"))
+        start = date_format(@@(data,"$start"), "yyyy-MM-dd HH:mm")
+        end = date_format(@@(data,"$end"), "yyyy-MM-dd HH:mm")
+        next_days = @@(data,"#next_days")
+        only_on_the_hour = parse.bool(@@(data,"$only_on_the_hour"))
+
+        // -- Validación de campos
+        if calendar_id == "" { do rise_error(400,"No se proporciono el ID del Calendario 'calendar_id'.") }
+
+        if start == "" { start = dbr.str(db,"SELECT DATE_FORMAT(NOW(),'%Y-%m-%d %H:%i')",@null) }
+        start >> data
+
+        if not(field.exist(data,"end")) && not(field.exist(data,"next_days")) { next_days = 3 }
+        if next_days > 0 { end = dbr.str(db,"SELECT DATE_FORMAT(DATE_ADD(@start, INTERVAL @next_days DAY),'%Y-%m-%d %H:%i')",data) }
+        if next_days < 1
+        {
+            if end == "" { do rise_error(400,"Debe proporcionar el valor de fecha final 'end' o la cantidad de días 'next_days'.") }
+
+            ndt_start = ndatetime.fromstr(start,"yyyy-MM-dd")
+            ndt_end = ndatetime.fromstr(end,"yyyy-MM-dd")
+            next_days = ndatetime.diff(ndt_end, ndt_start, "d")
+
+            if next_days < 0 { do rise_error(400,"La fecha final 'end' no puede ser menor a la fecha inicial 'start' o 'next_days' no puede ser negativo.") }
+        }
+        calendar_id, end, next_days >> data
+        calendar_id, start, end >> params
+
+        // -- Obtener disponibilidad
+        ref settings = dbr.rec(db,"SELECT start_lab_hour, end_lab_hour, intervalo, min_duration, max_duration, minutes_in_advance, breaks, weekend, holidays FROM pim_calendar WHERE sys_guid = @calendar_id",data)
+        // Espacios disponobles de acuerdo a la configuración del calendario.
+        ref available = GetAvailableDates(start, settings, next_days)
+        // Consultar fechas y horas ocupadas dentro del rango de fechas.
+        sql = "
+        SELECT
+            DATE_FORMAT(e.`start`,'%Y-%m-%d') d,
+            GROUP_CONCAT(CONCAT(DATE_FORMAT(e.`start`,'%H:%i'),'-',DATE_FORMAT(DATE_ADD(e.`start`, INTERVAL e.duration MINUTE),'%H:%i')) SEPARATOR ',') h
+        FROM pim_events e
+            INNER JOIN pim_calendar c ON e.calendar = c.sys_pk
+        WHERE
+            c.sys_guid = @calendar_id
+            AND ( DATE(e.`start`) BETWEEN DATE(@start) AND DATE(@end) )
+        GROUP BY DATE(e.`start`)
+        "
+        ref busy = dbr.list(db,sql,data)
+        // Pivotear/Mapear lista de fechas y horas ocupadas.
+        ref busy_map = record.create()
+        for i = 0; i < list.count(busy)
+        {
+            ref itm = list.obj(busy,i)
+            busy_map<@@(itm,"$d")> : @@(itm,"$h")
+        }
+        // Descartar momentos ocupados de las fechas disponibles.
+        ref available_list = list.create_from_fields(available)
+        ref slots = list.create()
+
+        for i = 0; i < list.count(available_list)
+        {
+            date = list.str(available_list,i)
+            ref hours = field.obj(available,date)
+
+            for j = 0; j < list.count(hours)
+            {
+                busy_hours = @@(busy_map,date)
+                hour = list.str(hours,j)
+                ok = @true
+
+                if only_on_the_hour { ok = (only_on_the_hour && EndsWith(hour,":00")) }
+                if not(IsInBreak(hour,busy_hours)) && ok
+                {
+                    inicio = date +" "+ hour
+                    inicio >> settings
+                    
+                    ref slot = dbr.rec(db,"
+                    SELECT
+                        CONCAT(
+                            ELT(DAYOFWEEK(@inicio),'Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'),
+                            ', ',
+                            DATE_FORMAT(@inicio, '%Y-%m-%d')
+                        ) AS `day`,
+                        
+                        @inicio AS `start`,
+                        
+                        DATE_FORMAT(
+                            DATE_ADD(@inicio, INTERVAL @min_duration MINUTE),
+                            '%Y-%m-%d %H:%i'
+                        ) AS `end`,
+                        
+                        @min_duration AS duration;
+                    ",settings)
+
+                    new_busy_hour = hour +"-"+ list.str(split(slot.end," "),1)
+                    busy_hours = busy_hours + ifstr(busy_hours != "", ",", "") + new_busy_hour
+                    busy_map<date> : busy_hours
+
+                    do list.add(slots,slot)
+                }
+            }
+        }
+
+        return slots
+    }
+
+    function SetCalendarSlots(&db,&params,&slots)
+    {
+        total = list.count(slots)
+
+        ref calendar = dbr.rec(db,"SELECT sys_guid AS calendar_id, nombre AS calendar_name FROM pim_calendar WHERE sys_guid = @calendar_id",params)
+        using calendar
+        {
+            @"availability": ifstr(total > 0, "Sí, "+str(total), "No, sin") + " espacios disponibles"
+            @"slots*": slots
+        }
+
+        return calendar
+    }
+
+
+    if not(isset("@__debug")) { @__debug = @false }
+    if not(parse.bool(@__debug))
+    {
+        do errordet(@false)
+
+        // -- Procesar solicitud HTTP -------------------------
+        go sise_base_service(params:params, payload:payload, response:response)
+        {
+            ref db = _db()
+            ref result = text.create()
+            ref availability = list.create()
+
+            valid_fields = "calendar_id,start,end,next_days,only_json,only_on_the_hour,response_type"
+            // Filtrar campos validos de 'params'
+            ref fields_in_params = filter_args(params, valid_fields)
+            // Filtrar campos validos de 'payload.data'
+            ref fields_in_data = filter_args(@@(payload,"&data"), valid_fields)
+            // Combinar resultados prefiriendo los valores de 'payload.data'
+            ref data = record.copyexin(fields_in_data, fields_in_params, "*", ",", "", ":")
+
+            if @@(data,"$calendar_id") == "" { do rise_error(400,"No se proporcionaron ID's de calendarios.") }
+            ref calendars = split(@@(data,"$calendar_id"),",")
+
+            for i = 0; i < list.count(calendars)
+            {
+                calendar_id = trim(list.str(calendars,i))
+                if calendar_id != ""
+                {
+                    data<"calendar_id"> : calendar_id
+                    
+                    ref slots = GetAvailableSlots(db,params,data)
+                    ref calendar = SetCalendarSlots(db,params,slots)
+
+                    if contains(@@(params,"$response_type"),"json")
+                    {
+                        do list.add(availability,calendar)
+                    }
+                    else
+                    {
+                        total = list.count(slots)
+                        start, end << params
+
+                        preamble = ifstr(total > 0, "Disponibilidad entre #<start> y #<end>", "No hay disponibilidad para el periodo #<start> a #<end>")
+
+                        do text.say(result,ftext(preamble))
+                        do text.say(result,to.json(calendar))
+                        do text.say(result,"")
+                    }
+                }
+            }
+
+            response<"message"> : text.get(result)
+            response<"data*"> : availability
+
+            exception
+            {
+                using response
+                {
+                    @"success": @false
+                    @"message": "No fue posible obtener los espacios: "+last_error()
+                }
+            }
+        }
+    }
+}
