@@ -14,6 +14,7 @@ module "Funciones de propósito general"
         * @param Int millisecondsTimeout | Número de milisegundos durante los que el subproceso está suspendido.
         */
         do _map_function(-1, "System.Threading.Thread", "Sleep", "Sleep", "System.Int32", "void")
+        do _map_function(-1, "System.DateTime", "AddMinutes", "AddMinutes", "System.Double", "*")
         /**
         * Comprueba rangos de horario.
         *

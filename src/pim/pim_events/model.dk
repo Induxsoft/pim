@@ -203,7 +203,7 @@ module ":events"
             if not(@@(r,"$valid_start"))
             {
                 success = @false
-                p<"start"> : @@(r,"$ahora")
+                params<"start"> : @@(r,"$ahora")
             }
         }
         // Comprobar que el inicio y fin no interfieran con los recesos.

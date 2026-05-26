@@ -44,7 +44,7 @@ program "Consulta espacios disponibles de calendarios"
 
         // -- Obtener disponibilidad
         ref settings = dbr.rec(db,"SELECT start_lab_hour, end_lab_hour, intervalo, min_duration, max_duration, minutes_in_advance, breaks, weekend, holidays FROM pim_calendar WHERE sys_guid = @calendar_id",data)
-        // Espacios disponobles de acuerdo a la configuración del calendario.
+        // Espacios disponibles de acuerdo a la configuración del calendario.
         ref available = GetAvailableDates(start, settings, next_days)
         // Consultar fechas y horas ocupadas dentro del rango de fechas.
         sql = "
