@@ -114,6 +114,18 @@ program "Controlador de eventos"
                 @"event_id": @@(evt,"$external_id")
             }
             do requestNylas("DELETE",query,@null)
+
+            exception
+            {
+                error = last_error()
+                
+                if containsword(error,"Resource has been deleted, Not Found") {
+                    do clear_exceptions()
+                    break
+                }
+
+                do rise_error(500,error)
+            }
             break
         }
     }
