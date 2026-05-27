@@ -68,7 +68,7 @@ module ""
         }
     }
     do list.ins(@@(external_calendars,"&datatable"),0,from.json('{ "id":"", "name":"Seleccione..." }'))
-    if @("$./data/sync_calendar") != "" { external_calendars<"attributes/disabled"> : "" }
+    if @("$./data/sync_calendar") != "" { external_calendars<"attributes/readonly"> : "" }
 
     new pim_events_type
     {
@@ -98,6 +98,19 @@ module ""
             #!
             do uie.printV12FormBar(nav_config)
             #$
+
+            style
+            {$'
+                input[type="checkbox"]:has([readonly]),
+                select[readonly],
+                textarea[readonly],
+                fieldset[readonly] *
+                {
+                    pointer-events: none;
+                    background-color: #e9ecef;
+                    opacity: 1;
+                }
+            '}
         }
 
         section(id="work_area") //style="overflow-y:auto; overflow-x:hidden;"

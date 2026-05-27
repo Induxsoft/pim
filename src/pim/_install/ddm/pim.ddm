@@ -90,7 +90,7 @@ model "pim"
         @"status" int // null|0=pendiente, 1=hecho, 99-cancelado
         @"important" bool
         @"data" memo // Objeto con datos de propósito general asociados al evento
-        @"external_id" string(36) // Identificador de la instancia del evento en un calendario externo (sincronizado)
+        @"external_id" string(128) // Identificador de la instancia del evento en un calendario externo (sincronizado)
         // Campos de propósito general
         @"detsrc" string(15) // Identificador del tipo de elemento de datos o proceso donde se generó el evento
         @"srcid" int // Identificador correspondiente a la instancia del tipo de elemento de datos que originó el evento
