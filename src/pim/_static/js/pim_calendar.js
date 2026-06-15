@@ -70,11 +70,11 @@ var calendar = {
             const view = document.getElementById("view");
             const day = document.getElementById("day");
             const btnAdd = document.getElementById("btn-add-event");
-            this.btn_vigent_event=document.getElementById("btn-vigent-event");
             const btnEdt = document.getElementById("btn-edt-event");
             const btnDel = document.getElementById("btn-del-event");
             this.btnCancelEvent = document.getElementById("btn-cancel-event");
             this.btnCompleteEvent = document.getElementById("btn-complete-event");
+            this.btn_vigent_event=document.getElementById("btn-vigent-event");
             this.new_calendar=document.getElementById("new_calendar");
 
             view.addEventListener('change', (e) => this.setParameter('view',e.target.value));
@@ -404,7 +404,10 @@ var calendar = {
             InduxsoftCrudlModel.InvokeService(this.url_add_event, new FormData(this.form),
                 (res) => {
                     this.req_add_event = false;
-                    this.schedule.save(res);
+                    
+                    if (Array.isArray(res)) res.forEach(ev => this.schedule.save(ev));
+                    else this.schedule.save(res);
+                    
                     tools.hideModal(this.modal_id);
                 },
                 (err) => {

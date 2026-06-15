@@ -67,7 +67,7 @@ model "pim"
 		@"min_duration" int
         @"max_duration" int
         @"minutes_in_advance" int
-        @"breaks" string(150)
+        @"breaks" string(1024)
 		@"weekend" string(65)
 		@"holidays" memo
         

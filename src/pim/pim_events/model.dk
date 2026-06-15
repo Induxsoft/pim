@@ -3,6 +3,9 @@
 module ":events"
 {
     #include "pim/pim_event_participant/model.dk"
+    @__process_request = @false
+    #include "pim/sise/get-available-slots.dkl"
+
 
     @table_name = "pim_events"
     @keyfield = @pim_events_keyfield
@@ -138,21 +141,21 @@ module ":events"
         calendar, start, duration >> params
 
         ref ev = dbr.rec(db,ftext("
-            SELECT
-                caption,
-                DATE_FORMAT(start,'%Y-%m-%d %H:%i') start,
-                duration
-            FROM #<@table_name>
-            WHERE
-                NOT IFNULL(sys_deleted,0)
-                AND IFNULL(`status`,0) = 0
-                AND calendar = @calendar
-                AND (@event_id IS NULL OR sys_guid <> @event_id)
-                AND (
-                    start BETWEEN TIMESTAMP(@start) AND DATE_ADD(@start, INTERVAL @duration MINUTE)
-                    OR
-                    DATE_ADD(start, INTERVAL duration MINUTE) BETWEEN TIMESTAMP(@start) AND DATE_ADD(@start, INTERVAL @duration MINUTE)
-                )
+        SELECT
+            caption,
+            DATE_FORMAT(start,'%Y-%m-%d %H:%i') start,
+            duration
+        FROM #<@table_name>
+        WHERE
+            NOT IFNULL(sys_deleted,0)
+            AND IFNULL(`status`,0) = 0
+            AND calendar = @calendar
+            AND (@event_id IS NULL OR sys_guid <> @event_id)
+            AND (
+                start BETWEEN TIMESTAMP(@start) AND DATE_ADD(@start, INTERVAL @duration MINUTE)
+                OR
+                DATE_ADD(start, INTERVAL duration MINUTE) BETWEEN TIMESTAMP(@start) AND DATE_ADD(@start, INTERVAL @duration MINUTE)
+            )
         "),params)
         if not(isnull(ev))
         {
@@ -170,24 +173,24 @@ module ":events"
     //#region CheckAvailability()
     function CheckAvailability(&db,&params)
     {
+        new response { @"success": @true }
+
         event_id = @@(params,"$event_id")
         calendar = @@(params,"#calendar")
         start = @@(params,"$start")
         duration = @@(params,"#duration")
-        success = @true
-        message = ""
 
         if calendar < 1
         {
-            success = @false
-            message = "No se ha indicado el calendario de origen."
-            success, message >> response
+            response.success := @false
+            response.message := "No se ha indicado el calendario de origen."
+            
             return response
         }
 
         event_id, calendar, start, duration >> p
         
-        ref cal = dbr.rec(db,"SELECT start_lab_hour, end_lab_hour, intervalo, breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",p)
+        ref cal = dbr.rec(db,"SELECT sys_guid, start_lab_hour, end_lab_hour, intervalo, breaks, weekend, holidays FROM pim_calendar WHERE sys_pk = @calendar",p)
 
         success = @@(checkStartRange(db,p),"#success")
         // Comprobar que el inicio sea una fecha válida.
@@ -233,14 +236,29 @@ module ":events"
             success = not(isanyword(date_format(start,"mm-dd"),holidays))
         }
 
+        if not(isset("@__include_availability")) { @__include_availability = @true }
+        if not(isset("@__include_slots")) { @__include_slots = @false }
         if not(success)
         {
             message = "No se ha podido agendar el evento "+start+" porque el horario elegido no está disponible.\nLas siguientes fechas y horarios están disponibles cerca de esa fecha:\n"
             
-            message = message + GetAvailability(db,params)
+            if @__include_availability { message = message + GetAvailability(db,params) }
+            response.message := message
+
+            // if @__include_slots
+            // {
+            //     new slotsArgs
+            //     {
+            //         @"calendar_id": @@(cal,"$sys_guid")
+            //         @"start": @@(params,"$start")
+            //         @"end": @@(params,"$end")
+            //         @"next_days": @@(params,"#suggested_days")
+            //     }
+            //     response<"slots*"> : GetAvailableSlots(db,p,slotsArgs)
+            // }
         }
 
-        success, message >> response
+        response.success := success
         return response
     }
 
@@ -317,7 +335,7 @@ module ":events"
         params<"backcolor">:@@(data,"$backcolor")
         do dbr.execute(db,"UPDATE pim_events set backcolor=@backcolor where sys_pk=@_entity_id",params)
     }
-    //#endregion
+
     //#region parseEventLinks()
     function parseEventLinks(&db,&event)
     {
@@ -576,22 +594,117 @@ module ":events"
         @use_transaction = @false
         @just_read_entity = @true
 
-        do validateEventAction(db,@@(data,"#calendar"))
-        do dbr.begin(db)
+        // Extraer configuración de recurrencia
+        ref recurrence = extractRecurrenceConfig(data)
 
+        // Validaciones
+        do validateEventAction(db,@@(data,"#calendar"))
         do validateFields(db,params,data)
         do participants.setAsChildren(data)
+
+        // Creación
+        if @@(recurrence,"#count") > 0 { ref result = repeatEvent(db,params,data,recurrence) }
+        else { ref result = _create(db,params,data) }
+
+        @url_redir = replace(@pim_calendar_see,"@_entity_id",@@(data,"$calendar"))
+
+        return result
+
+        exception{ do catch(db,params,data) }
+    }
+    function _create(&db,&params,&data)
+    {
+        do dbr.begin(db)
+
         ref entity = entity.create(db,params,data)
 
         do dbr.apps.action.pos(entity)
         do dbr.commit(db)
         do dbr.apps.action.ext(entity)
 
-        @url_redir = replace(@pim_calendar_see,"@_entity_id",@@(entity,"$calendar"))
-
         return entity
+    }
 
-        exception{ do catch(db,params,data) }
+    function extractRecurrenceConfig(&data)
+    {
+        ref config = record.create()
+        if not(isnull(@@(data,"&recurrence_config")))
+        {
+            typeof = field.typeof(data,"recurrence_config")
+            
+            if typeof == 1
+            {
+                json = @@(data,"$recurrence_config")
+                if not(isanyword(json,",{},[]")) { ref config:from.json(json) }
+            }
+            else if typeof == 3 { ref config:@@(data,"&recurrence_config") }
+        }
+        do field.remove(data,"recurrence_config")
+        return config
+    }
+
+    function repeatEvent(&db,&params,&data,&config)
+    {
+        @__include_availability = @false
+
+        calendar_id = dbr.str(db,"select sys_guid from pim_calendar where sys_pk = @calendar",data)
+        start_time = date_str(str2dt(@@(data,"$start")),"HH:mm")
+        move = 0
+
+        ref occurrences = @@(config,"&occurrences")
+        ref result = list.create()
+
+        for i = 0; i < list.count(occurrences)
+        {
+            start_date = list.str(occurrences,i)
+            start = start_date +" "+ start_time
+            if move > 0
+            {
+                ref new_start = _invoke(str2dt(start), "AddDays", move)
+                start = date_str(new_start,"yyyy-MM-dd HH:mm")
+            }
+
+            ref copy = record.copy(data,"*")
+            copy.start := start
+
+            ref check = CheckAvailability(db,copy)
+            if not(@@(check,"#success"))
+            {
+                get_slots = @true
+                next_days = 1
+
+                while get_slots
+                {
+                    new slotsArgs
+                    {
+                        @"calendar_id": calendar_id
+                        @"start": start
+                        @"next_days": next_days
+                    }
+                    ref slots = GetAvailableSlots(db,params,slotsArgs)
+                    
+                    if list.count(slots) < 1
+                    {
+                        next_days = next_days + 1
+                        move = move + 1
+                    }
+                    else
+                    {
+                        ref found = list.obj(slots,0)
+                        copy.start := found.start
+
+                        get_slots = @false
+                    }
+                }
+            }
+
+            ref event = _create(db,params,copy)
+            do list.add(result,event)
+
+            params._entity_id := "_new"
+        }
+
+        return result
     }
 
     //#region update()

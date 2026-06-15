@@ -132,8 +132,8 @@ program "Consulta espacios disponibles de calendarios"
     }
 
 
-    if not(isset("@__debug")) { @__debug = @false }
-    if not(parse.bool(@__debug))
+    if not(isset("@__process_request")) { @__process_request = @true }
+    if parse.bool(@__process_request)
     {
         do errordet(@false)
 

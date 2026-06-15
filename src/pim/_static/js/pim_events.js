@@ -24,7 +24,13 @@ var events = {
         start.addEventListener('change', (e) => this.checkStartRange());
         duration.addEventListener('change', (e) => this.checkStartRange());
 
-        if(this.is_new)tools.trigger(type,'change');
+        if (this.is_new) tools.trigger(type,'change');
+        
+        const rec_btn = this.ff['btn-add-recurrence'];
+        if (rec_btn) rec_btn.addEventListener('click', (e) => {
+            if (!e.target.checked) { this.ff['recurrence_config'].value = "{}" }
+            else { this.showRecurrenceDialog() }
+        });
     },
 
     checkStartRange()
@@ -87,6 +93,25 @@ var events = {
             table.AddRow();
             rows++;
         }
+    },
+
+    showRecurrenceDialog()
+    {
+        const recurrence = this.ff['recurrence_config'];
+
+        openRecurrenceDialog({
+            startDatetime: this.ff['start'].value,
+            duration: parseInt(this.ff['duration'].value) + 1,
+
+            onConfirm: (config) => {
+                recurrence.value = JSON.stringify(config);
+                recurrence.checked = true;
+            },
+            onCancel: () => {
+                recurrence.value = "{}";
+                recurrence.checked = false;
+            }
+        });
     },
 
     setLog()
