@@ -1,6 +1,6 @@
 {
     "id": "pim",
     "installable": ["pim"],
-    "version": "1.0.62",
+    "version": "1.0.63",
     "schema_ver": "1.0.12"
 }

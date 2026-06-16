@@ -38,7 +38,7 @@ module "form.dk"
 
     new sel_view
     {
-        @"id": "view"
+        @"id": "schedule-view-mode"
         @"value_field": "id"
         @"text_field": "const"
         @"selected": view
@@ -117,15 +117,15 @@ module "form.dk"
                 {
                     div(class="input-group input-group-sm")
                     {
-                        label(class="input-group-text rounded-0" "for"="view"){"Vista"}
+                        label(class="input-group-text rounded-0" "for"="schedule-view-mode"){"Vista"}
                         ##
                         do uie.dbSelect(sel_view)
                         ##
                     }
                     div(class="input-group input-group-sm")
                     {
-                        label(class="input-group-text rounded-0" "for"="day"){"Día"}
-                        input(class="form-control rounded-0 no-shadow" type="date" value="#<day>" id="day")
+                        label(class="input-group-text rounded-0" "for"="schedule-day-to-show"){"Día"}
+                        input(class="form-control rounded-0 no-shadow" type="date" value="#<day>" id="schedule-day-to-show")
                     }
                 }
                 div(class="d-flex justify-content-end flex-grow-1")
