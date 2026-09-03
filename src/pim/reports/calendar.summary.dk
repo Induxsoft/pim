@@ -1,0 +1,160 @@
+#include "dkli.dkh"
+#!
+module "Reporte de calendario"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "pim/_lib/config.dk"
+
+    @title = "Reporte de calendario"
+    @container_class = "container"
+
+
+    printFilters::
+    {
+        new calendar_select
+        {
+            @"id": "calendar"
+            @"value_field": "sys_pk"
+            @"text_field": "nombre"
+            @"first_value": "-1"
+            @"first_text": "Ningun calendario"
+            @"datatable*": ifnull(@("&./calendars"),list.create())
+            @"selected": @("#parameters/calendar")
+            member "attributes"
+            {
+                @"class": "form-select rounded-0"
+                @"name": "calendar"
+                @"onchange": "filter(this)"
+            }
+        }
+
+        new event_type_select
+        {
+            @"id": "type"
+            @"value_field": "sys_pk"
+            @"text_field": "nombre"
+            @"first_value": "-1"
+            @"first_text": "Todos los tipos"
+            @"datatable*": ifnull(@("&./types"),list.create())
+            @"selected": @("#parameters/type")
+            member "attributes"
+            {
+                @"class": "form-select rounded-0"
+                @"name": "type"
+                @"onchange": "filter(this)"
+            }
+        }
+
+        new dr_init
+        {
+            @"start": @("$parameters/fi")
+            @"end": @("$parameters/ff")
+        }
+
+        #$
+        div(class="d-flex align-items-center gap-1 flex-wrap mb-1")
+        {
+            // Filtro por calendarios
+            div
+            {
+                #!
+                do uie.dbSelect(calendar_select)
+                #$
+            }
+            // Filtro por tipos de eventos
+            div
+            {
+                #!
+                do uie.dbSelect(event_type_select)
+                #$
+            }
+            // Filtro por rango de fechas
+            div
+            {
+                "date-range"(class="w-100" "hidden-input-name-start"="fi" "hidden-input-name-end"="ff" data='#<to.json(dr_init)>' id="date_range"){""}
+            }
+        }
+        #!
+    }
+
+    _print_summary::&record,key
+    {
+        ref sum = if(key!="", @@(record,"&"+key), record)
+        if key!="" { do field.remove(record,key) }
+        
+        summary = ""
+        go foreach.fnum(index:i, key:tag, value:value) with(sum) {
+            summary = summary + ftext('<span class="fw-bolder">#<tag>:</span> <span>#<value></span>')
+        }
+        
+        #$ p(class="d-flex gap-2 my-3"){$"#<summary> <hr />"}
+        #!
+    }
+
+    printContent::
+    {
+        new sum { @"Total":0 }
+        total = list.count(@data)
+        section = ""
+        sections = 0
+
+        for i = 0; i < total
+        {
+            ref item = list.obj(@data,i)
+
+            date = @@(item,"$event_start_date")
+            status = @@(item,"$event_status")
+
+            if section != date
+            {
+                sum<date+"*"> : from.json('{"Total":0}')
+                if section != "" { do _print_summary(sum,section) }
+
+                #$ p(class="fw-bold"){"#<@@(item,'event_start_day') +' '+ date>"}
+                #!
+
+                section = date
+                sections = sections + 1
+            }
+
+            #$
+            div(class="row")
+            {
+                div(class="col-auto"){"#<@@(item,'event_start_time')>"}
+                div(class="col-auto"){"#<status>"}
+                div(class="col-auto"){"#<@@(item,'event_type')>"}
+                div(class="col"){"#<@@(item,'caption')>"}
+            }
+            #!
+
+            sum<date+"/"+status> : @@(sum,"#"+date+"/"+status) + 1
+            sum<date+"/Total"> : @@(sum,"#"+date+"/Total") + 1
+
+            sum<status> : @@(sum,"#"+status) + 1
+            sum<"Total"> : @@(sum,"#Total") + 1
+
+            if i == (total - 1) { do _print_summary(sum,section) }
+        }
+
+        if sections > 1 { do _print_summary(sum,"") }
+    }
+
+    printJavaScript::
+    {
+        #$
+        script(type="text/javascript")
+        {$'
+            document.addEventListener("DOMContentLoaded", () => {
+                const date_range = document.querySelector("date-range");
+
+                date_range.onChanging = (oldData,newData) => { date_range.setData(newData) };
+                date_range.onChange = (data) => { filter(date_range._hiddenInputStr) };
+            });
+        '}
+        #!
+    }
+
+    #include "pim/_lib/common.report.dk"
+}

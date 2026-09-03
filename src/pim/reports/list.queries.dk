@@ -74,4 +74,33 @@ module ""
         l.sent_at
     ;
     "
+
+    @qry_calendar_summary = "
+    SELECT
+        ELT(dayofweek(e.start),'Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado') AS event_start_day,
+        date_format(e.start,'%d-%m-%Y') AS event_start_date,
+        date_format(e.start,'%h:%i %p') AS event_start_time,
+        e.caption,
+        (CASE e.`status`
+            WHEN 99 THEN 'Cancelado'
+            WHEN 1 THEN 'Hecho'
+            ELSE 'Pendiente'
+        END) AS event_status,
+        t.nombre AS event_type
+    FROM pim_events e
+        INNER JOIN pim_events_type t ON e.type = t.sys_pk
+    WHERE
+        NOT ifnull(e.sys_deleted,0)
+        AND if(ifnull(@calendar,-1) < 1, FALSE, e.calendar = @calendar)
+        AND (ifnull(@type,-1) < 1 OR e.type = @type)
+        AND (
+            CASE
+                WHEN @fi != '' && @ff != '' THEN (DATE(e.`start`) BETWEEN DATE(@fi) AND DATE(@ff))
+                WHEN @fi != '' && @ff = '' THEN (DATE(e.`start`) >= DATE(@fi))
+                WHEN @fi = '' && @ff != '' THEN (DATE(e.`start`) <= DATE(@ff))
+                ELSE TRUE
+            END
+        )
+    ORDER BY e.`start`
+    "
 }

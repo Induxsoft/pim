@@ -35,15 +35,21 @@ module ":pim.report"
                 }
                 break
             }
+            case "calendar-summary"
+            {
+                using data
+                {
+                    @"types*": dbr.list(db,sql_events_types,params)
+                }
+                break
+            }
         }
 
         do prepareDefaultReportData(db,data)
     }
 
     eventNotifications :: &db, &params
-    {
-        // do dbr.apps.action.grant("TF60")
-        
+    {   
         using params
         {
             @"calendar": @@(params,"#calendar")
@@ -70,6 +76,28 @@ module ":pim.report"
         }
         do prepareView(db,params,data)
         return data
+
+        exception{ do catch() }
+    }
+
+    calendarSummary :: &db, &params
+    {
+        using params
+        {
+            @"calendar": @@(params,"#calendar")
+            @"type": @@(params,"#type")
+        }
+        if not(field.exist(params,"fi")) { params<"fi"> : date_str(now(),"yyyy-MM-dd") }
+        if not(field.exist(params,"ff")) { params<"ff"> : date_str(now(),"yyyy-MM-dd") }
+
+
+        new resp
+        {
+            @"data*": dbr.list(db,@qry_calendar_summary,params)
+            @"calendars*": getUserCalendars(db)
+        }
+        do prepareView(db,params,resp)
+        return resp
 
         exception{ do catch() }
     }

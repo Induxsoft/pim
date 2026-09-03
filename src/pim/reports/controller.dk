@@ -10,6 +10,12 @@ module "ReportController"
             point @read to pim.report.eventNotifications
             break
         }
+        case "calendar-summary"
+        {
+            @form_view = "calendar.summary.dk"
+            point @read to pim.report.calendarSummary
+            break
+        }
         default
         {
             point @read to pim.report.NotImplemented
