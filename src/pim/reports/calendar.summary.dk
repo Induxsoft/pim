@@ -47,6 +47,26 @@ module "Reporte de calendario"
             }
         }
 
+        new event_status_select
+        {
+            @"id": "status"
+            @"value_field": "id"
+            @"text_field": "const"
+            @"datatable*": from.json('[
+                {"id":-1, "const":"Todos los estados"},
+                {"id":0, "const":"Pendiente"},
+                {"id":1, "const":"Hecho"},
+                {"id":99, "const":"Cancelado"}
+            ]')
+            @"selected": @("#parameters/status")
+            member "attributes"
+            {
+                @"class": "form-select rounded-0"
+                @"name": "status"
+                @"onchange": "filter(this)"
+            }
+        }
+
         new dr_init
         {
             @"start": @("$parameters/fi")
@@ -68,6 +88,13 @@ module "Reporte de calendario"
             {
                 #!
                 do uie.dbSelect(event_type_select)
+                #$
+            }
+            // Filtro por estados de evento
+            div
+            {
+                #!
+                do uie.dbSelect(event_status_select)
                 #$
             }
             // Filtro por rango de fechas

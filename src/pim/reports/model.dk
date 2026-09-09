@@ -86,6 +86,7 @@ module ":pim.report"
         {
             @"calendar": @@(params,"#calendar")
             @"type": @@(params,"#type")
+            @"status": @@(params,"#status")
         }
         if not(field.exist(params,"fi")) { params<"fi"> : date_str(now(),"yyyy-MM-dd") }
         if not(field.exist(params,"ff")) { params<"ff"> : date_str(now(),"yyyy-MM-dd") }

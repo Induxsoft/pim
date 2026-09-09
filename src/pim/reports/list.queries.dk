@@ -93,6 +93,7 @@ module ""
         NOT ifnull(e.sys_deleted,0)
         AND if(ifnull(@calendar,-1) < 1, FALSE, e.calendar = @calendar)
         AND (ifnull(@type,-1) < 1 OR e.type = @type)
+        AND (ifnull(@status,-1) = -1 OR ifnull(e.`status`,0) = @status)
         AND (
             CASE
                 WHEN @fi != '' && @ff != '' THEN (DATE(e.`start`) BETWEEN DATE(@fi) AND DATE(@ff))
