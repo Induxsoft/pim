@@ -167,6 +167,8 @@ module ":calendar"
         {
             @"sys_user": @@(@http_context,"$session/user/uid")
             @"sys_lastuser": @@(@http_context,"$session/user/uid")
+            @"require_participants": parse.bool(@@(data,"$require_participants"))
+            @"assoc_with_prospect": parse.bool(@@(data,"$assoc_with_prospect"))
         }
     }
 

@@ -223,6 +223,26 @@ module "form.dk"
                             label(class="form-label" "for"="holidays"){"Fechas no laborales:"}
                             input(class="flatpickr flatpickr-input w-100" type="text" name="holidays" id="holidays" "data-default-values"="#<fd('holidays','tx',entity)>" readonly="")
                         }
+                        
+                        div(class="col-12 pt-2")
+                        {
+                            #!
+                            checked = fd('require_participants','ch',entity)
+                            #$
+                            div(class="form-check form-check-inline")
+                            {
+                                input(class="form-check-input" type="checkbox" name="require_participants" id="require_participants" "#<checked>"="")
+                                label(class="form-check-label" "for"="require_participants"){"Requerir participantes para crear evento"}
+                            }
+                            #!
+                            checked = fd('assoc_with_prospect','ch',entity)
+                            #$
+                            div(class="form-check form-check-inline")
+                            {
+                                input(class="form-check-input" type="checkbox" name="assoc_with_prospect" id="assoc_with_prospect" "#<checked>"="")
+                                label(class="form-check-label" "for"="assoc_with_prospect"){"Asociar con prospecto activo"}
+                            }
+                        }
                     }
                 }
             }

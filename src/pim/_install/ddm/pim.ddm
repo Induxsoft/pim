@@ -70,6 +70,8 @@ model "pim"
         @"breaks" string(1024)
 		@"weekend" string(65)
 		@"holidays" memo
+        @"require_participants" bool
+        @"assoc_with_prospect" bool
         
         index "pim_calendar_idx1" unique
         {

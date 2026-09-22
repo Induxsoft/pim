@@ -467,6 +467,7 @@ module ":events"
             @"calendar": calendar
             @"type": type
         }
+        
         if is_new
         {
             if trim(@@(data,"$caption")) == "" { do rise_error(513,"No ha indicado la descripción del evento.") }
@@ -476,7 +477,7 @@ module ":events"
             if min_duration < 1 { min_duration = parse.num(dbr.vars.get(db,"pim_events_min_duration")) }
             if @@(data,"#duration") < min_duration { data<"duration"> : min_duration }
 
-            ref event_type = dbr.rec(db,"select backcolor, color from pim_events_type where sys_pk = @type",data)
+            ref event_type = dbr.rec(db,"SELECT backcolor, color FROM pim_events_type WHERE sys_pk = @type",data)
             if @@(data,"$backcolor") == "" { data<"backcolor"> : @@(event_type,"$backcolor") }
             if @@(data,"$color") == "" { data<"color"> : @@(event_type,"$color") }
         }
@@ -487,10 +488,11 @@ module ":events"
                 @"event_id": @@(params,"$_entity_id")
                 @"start": @@(data,"$start")
             }
-            sql = "select (@start <> '' and timestamp(@start) <> start) from #<@table_name> where #<@keyfield> = @event_id"
+            sql = "SELECT (@start <> '' and timestamp(@start) <> start) FROM #<@table_name> WHERE #<@keyfield> = @event_id"
             reschedule = dbr.num(db,ftext(sql),p)
             if not(reschedule){ do field.remove(data,"start") }
         }
+        
         if field.exist(data,"important"){ data<"important"> : parse.bool(@@(data,"$important")) }
         if field.exist(data,"status") && @@(data,"#status") > 0
         {
@@ -520,12 +522,45 @@ module ":events"
             if not(in_range) { do rise_error(515,"La duración se encuentra fuera del rango establecido en el calendario.") }
         }
         
+        ref opt = dbr.rec(db,"
+        SELECT
+            ifnull(require_participants,0) require_participants,
+            ifnull(assoc_with_prospect,0) assoc_with_prospect
+        FROM pim_calendar
+        WHERE sys_pk = @calendar
+        ",data)
+
+        do participants.validate(data)
+        ref participants = @@(data,"&participants")
+        total = @count(participants)
+
+        if @@(opt,"#require_participants") && total < 1 { do rise_error(516,"Debe indicar al menos un participante para crear el evento.") }
+        if @@(opt,"#assoc_with_prospect")
+        {
+            for i = 0; i < total
+            {
+                ref item = @item(participants,i)
+                
+                sql = "SELECT IFNULL((SELECT sys_pk FROM ut_icontact WHERE NOT IFNULL(sys_deleted,0) AND (uf_email = @email OR uf_telefono = @phone) LIMIT 1),0)"
+                sys_pk = dbr.num(db,sql,item)
+
+                if sys_pk > 0
+                {
+                    using data
+                    {
+                        @"detsrc": "DET0AF"
+                        @"srcid": sys_pk
+                        @"tag": "Prospecto"
+                    }
+                    break
+                }
+            }
+        }
+        
         if is_new { data<"status"> : @stt_event_pendiente }
         if @@(data,"$detsrc") == "" { do field.remove(data,"detsrc") }
         if @@(data,"#srcid") < 1 { do field.remove(data,"srcid") }
         if @@(data,"$tag") == "" { do field.remove(data,"tag") }
-
-        do participants.validate(data)
     }
 
     //#region list()
